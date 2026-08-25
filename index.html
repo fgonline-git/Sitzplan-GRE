@@ -348,11 +348,16 @@
     min-width:40px;
     color:var(--ink-dim);
   }
-  .print-btn{
+  .canvas-toolbar{
     position:absolute;
     top:12px;
     left:16px;
     z-index:20;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .print-btn{
     display:flex;
     align-items:center;
     gap:6px;
@@ -366,6 +371,22 @@
     font-weight:600;
   }
   .print-btn:hover{ background:var(--teal-tint); }
+  .print-btn.active{
+    background:var(--teal);
+    color:#fff;
+    border-color:var(--teal-dark);
+  }
+  .print-btn.active:hover{ background:var(--teal-dark); }
+  .marquee{
+    position:absolute;
+    left:0; top:0; width:0; height:0;
+    display:none;
+    background:rgba(43,111,98,0.14);
+    border:1.5px dashed var(--teal-dark);
+    border-radius:3px;
+    z-index:40;
+    pointer-events:none;
+  }
   .board{
     background:var(--board);
     color:#EDF3EF;
@@ -442,6 +463,12 @@
     box-shadow:0 8px 18px rgba(20,40,35,0.22);
     z-index:50;
     cursor:grabbing;
+  }
+  .table.multi-selected{
+    box-shadow:0 0 0 2.5px var(--teal), 0 4px 10px rgba(20,40,35,0.18);
+  }
+  .table.multi-selected.dragging{
+    box-shadow:0 0 0 2.5px var(--teal), 0 8px 18px rgba(20,40,35,0.22);
   }
   .table-header{
     position:absolute;
@@ -553,7 +580,7 @@
   /* ---------- Druckansicht: nur der Raumplan, in echter Größe ---------- */
   @media print{
     body{ background:#fff; }
-    .sidebar, .zoom-controls, .print-btn{ display:none !important; }
+    .sidebar, .zoom-controls, .canvas-toolbar{ display:none !important; }
     .app{ height:auto; display:block; }
     .canvas-wrap{ height:auto; overflow:visible; }
     .canvas-scroll{ overflow:visible; height:auto; }
@@ -618,7 +645,7 @@
         <button class="ghost" id="addSingle">+ Einzeltisch</button>
         <button class="ghost" id="addDouble">+ Doppeltisch</button>
       </div>
-      <p class="hint">Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Doppelklick dreht ihn um 90°. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen.</p>
+      <p class="hint">Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Doppelklick dreht ihn um 90°. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben.</p>
     </section>
 
     <section class="panel">
@@ -677,7 +704,10 @@
   </aside>
 
   <main class="canvas-wrap">
-    <button class="print-btn" id="printBtn" title="Raumplan drucken">🖶 Drucken</button>
+    <div class="canvas-toolbar">
+      <button class="print-btn" id="printBtn" title="Raumplan drucken">🖶 Drucken</button>
+      <button class="print-btn" id="multiSelectBtn" title="Mehrere Tische auswählen">☑️ Mehrere auswählen</button>
+    </div>
     <div class="zoom-controls">
       <button id="zoomOut" title="Verkleinern">−</button>
       <button id="zoomReset" title="Zoom zurücksetzen">100%</button>
@@ -725,6 +755,8 @@
   };
 
   var selected = null; // {studentId, from:'pool'|seatKey}
+  var multiSelected = {};    // tableId -> true, für Mehrfachauswahl/-verschieben (nur UI-Zustand, nicht gespeichert)
+  var multiSelectMode = false; // Umschalter für Touch: Tippen wählt aus statt Kopfleiste zu zeigen
 
   var pool = document.getElementById("studentPool");
   var canvas = document.getElementById("canvas");
@@ -762,6 +794,93 @@
     zoomBeforePrint = zoom;
     setZoom(1);
     setTimeout(function(){ window.print(); }, 60);
+  });
+
+  // ---------- Mehrfachauswahl von Tischen ----------
+  // Maus: Ziehen auf leerer Fläche zieht ein Auswahlrechteck auf (Marquee) – immer
+  // verfügbar, kollidiert mit nichts (Mausziehen auf leerer Fläche hat sonst keine
+  // Funktion). Touch: Ziehen auf leerer Fläche bleibt normales Scrollen; stattdessen
+  // schaltet der Button "Mehrere auswählen" einen Modus ein, in dem Antippen eines
+  // Tisches ihn der Auswahl hinzufügt/entfernt. Ein markierter Tisch ziehen bewegt
+  // die gesamte Auswahl gemeinsam (siehe makeTableDraggable).
+  function clearMultiSelection(){
+    if (Object.keys(multiSelected).length === 0) return;
+    multiSelected = {};
+    render();
+  }
+
+  function rectsIntersect(a, b){
+    return a.x < b.x + b.width && a.x + a.width > b.x &&
+           a.y < b.y + b.height && a.y + a.height > b.y;
+  }
+
+  var multiSelectBtn = document.getElementById("multiSelectBtn");
+  multiSelectBtn.addEventListener("click", function(){
+    multiSelectMode = !multiSelectMode;
+    multiSelectBtn.classList.toggle("active", multiSelectMode);
+  });
+
+  var marqueeActive = false;
+  var marqueeStartX = 0, marqueeStartY = 0;
+  var marqueeJustFinished = false;
+
+  canvas.addEventListener("pointerdown", function(e){
+    if (e.pointerType !== "mouse") return; // Touch: Scrollen nicht überschreiben
+    if (e.target.closest && e.target.closest(".table")) return;
+    marqueeActive = true;
+    var rect = canvas.getBoundingClientRect();
+    marqueeStartX = e.clientX - rect.left;
+    marqueeStartY = e.clientY - rect.top;
+    var box = document.getElementById("marqueeBox");
+    if (box){
+      box.style.display = "block";
+      box.style.left = marqueeStartX + "px";
+      box.style.top = marqueeStartY + "px";
+      box.style.width = "0px";
+      box.style.height = "0px";
+    }
+    canvas.setPointerCapture(e.pointerId);
+  });
+
+  canvas.addEventListener("pointermove", function(e){
+    if (!marqueeActive) return;
+    var rect = canvas.getBoundingClientRect();
+    var curX = e.clientX - rect.left;
+    var curY = e.clientY - rect.top;
+    var box = document.getElementById("marqueeBox");
+    if (!box) return;
+    var x = Math.min(marqueeStartX, curX), y = Math.min(marqueeStartY, curY);
+    var w = Math.abs(curX - marqueeStartX), h = Math.abs(curY - marqueeStartY);
+    box.style.left = x + "px";
+    box.style.top = y + "px";
+    box.style.width = w + "px";
+    box.style.height = h + "px";
+  });
+
+  canvas.addEventListener("pointerup", function(e){
+    if (!marqueeActive) return;
+    marqueeActive = false;
+    var rect = canvas.getBoundingClientRect();
+    var curX = e.clientX - rect.left;
+    var curY = e.clientY - rect.top;
+    var box = document.getElementById("marqueeBox");
+    if (box){ box.style.display = "none"; }
+
+    var mRect = {
+      x: Math.min(marqueeStartX, curX), y: Math.min(marqueeStartY, curY),
+      width: Math.abs(curX - marqueeStartX), height: Math.abs(curY - marqueeStartY)
+    };
+    var newSelection = {};
+    if (mRect.width > 3 || mRect.height > 3){
+      state.tables.forEach(function(t){
+        var fp = tableFootprintPx(t);
+        var tRect = { x: mToPx(t.xM), y: mToPx(t.yM), width: fp.width, height: fp.height };
+        if (rectsIntersect(mRect, tRect)) newSelection[t.id] = true;
+      });
+    }
+    multiSelected = newSelection;
+    if (Object.keys(newSelection).length > 0) marqueeJustFinished = true;
+    render();
   });
 
   // ---------- storage adapter ----------
@@ -1744,6 +1863,12 @@
     if (e.target.closest && e.target.closest(".table")) return;
     var actives = canvas.querySelectorAll(".table.header-active");
     for (var i = 0; i < actives.length; i++){ actives[i].classList.remove("header-active"); }
+    if (marqueeJustFinished){
+      marqueeJustFinished = false;
+      return;
+    }
+    if (e.target.closest && e.target.closest("#multiSelectBtn")) return;
+    clearMultiSelection();
   });
 
   function renderTables(){
@@ -1751,7 +1876,8 @@
     state.tables.forEach(function(t){
       var fp = tableFootprintPx(t);
       var el = document.createElement("div");
-      el.className = "table";
+      el.className = "table" + (multiSelected[t.id] ? " multi-selected" : "");
+      el.dataset.tableId = t.id;
       el.style.left = mToPx(t.xM) + "px";
       el.style.top = mToPx(t.yM) + "px";
       el.style.width = fp.width + "px";
@@ -1792,9 +1918,18 @@
       el.appendChild(seatsWrap);
       canvas.appendChild(el);
 
-      // Touch-Geräte kennen kein Hover: Antippen des Tisches blendet die Kopfleiste ein.
+      // Touch-Geräte kennen kein Hover: Antippen des Tisches blendet die Kopfleiste ein
+      // – außer im Mehrfachauswahl-Modus oder wenn bereits mehrere Tische markiert sind:
+      // dann schaltet ein Klick/Tipp stattdessen die Markierung dieses Tisches um.
       el.addEventListener("click", function(e){
         if (e.target.closest && e.target.closest(".icon-btn")) return;
+        var hasSelection = Object.keys(multiSelected).length > 0;
+        if (multiSelectMode || hasSelection){
+          if (multiSelected[t.id]) delete multiSelected[t.id];
+          else multiSelected[t.id] = true;
+          render();
+          return;
+        }
         var actives = canvas.querySelectorAll(".table.header-active");
         for (var i = 0; i < actives.length; i++){
           if (actives[i] !== el) actives[i].classList.remove("header-active");
@@ -1812,6 +1947,12 @@
 
       makeTableDraggable(el, t);
     });
+
+    var marqueeBox = document.createElement("div");
+    marqueeBox.className = "marquee";
+    marqueeBox.id = "marqueeBox";
+    canvas.appendChild(marqueeBox);
+
     fitOccupantNames();
   }
 
@@ -1968,14 +2109,35 @@
   // Die ganze Tischfläche ist per Klicken-und-Halten verschiebbar. Ein kurzer Klick
   // (ohne nennenswerte Bewegung) verhält sich weiterhin wie gewohnt – Platz zuweisen,
   // Kopfleiste ein-/ausblenden. Nur ein tatsächlicher Zug bewegt den Tisch. Der Kopfleisten-
-  // Griff bleibt zusätzlich als eigener Ziehpunkt nutzbar.
+  // Griff bleibt zusätzlich als eigener Ziehpunkt nutzbar. Ist der gezogene Tisch Teil
+  // einer Mehrfachauswahl (2 oder mehr), bewegt sich die ganze Gruppe gemeinsam, ohne
+  // die relative Anordnung zu verändern.
   var DRAG_THRESHOLD = 4;
+
+  // Ermittelt den größtmöglichen Versatz (dx/dy in Metern), der für JEDES Mitglied der
+  // Gruppe innerhalb der Raumgrenzen bleibt – hält die Gruppe dadurch starr zusammen.
+  function computeGroupDelta(desiredDxM, desiredDyM, group){
+    var minDx = -Infinity, maxDx = Infinity, minDy = -Infinity, maxDy = Infinity;
+    group.forEach(function(g){
+      var maxXM = Math.max(0, state.roomWM - g.fm.widthM);
+      var maxYM = Math.max(0, state.roomHM - g.fm.heightM);
+      minDx = Math.max(minDx, -g.origXM);
+      maxDx = Math.min(maxDx, maxXM - g.origXM);
+      minDy = Math.max(minDy, -g.origYM);
+      maxDy = Math.min(maxDy, maxYM - g.origYM);
+    });
+    return {
+      dx: Math.min(maxDx, Math.max(minDx, desiredDxM)),
+      dy: Math.min(maxDy, Math.max(minDy, desiredDyM))
+    };
+  }
 
   function makeTableDraggable(el, tableRef){
     var dragging = false;
     var moved = false;
     var justDragged = false;
-    var startX, startY, origXM, origYM;
+    var startX, startY;
+    var group = []; // [{ ref, el, origXM, origYM, fm }]
 
     el.addEventListener("pointerdown", function(e){
       if (e.target.closest && (e.target.closest(".icon-btn") || e.target.closest(".occupant"))) return;
@@ -1983,8 +2145,18 @@
       moved = false;
       startX = e.clientX;
       startY = e.clientY;
-      origXM = tableRef.xM;
-      origYM = tableRef.yM;
+
+      var ids = Object.keys(multiSelected);
+      if (multiSelected[tableRef.id] && ids.length > 1){
+        group = ids.map(function(id){
+          var ref = state.tables.filter(function(tb){ return tb.id === id; })[0];
+          var domEl = canvas.querySelector('.table[data-table-id="' + id + '"]');
+          if (!ref || !domEl) return null;
+          return { ref: ref, el: domEl, origXM: ref.xM, origYM: ref.yM, fm: tableFootprintM(ref) };
+        }).filter(Boolean);
+      } else {
+        group = [{ ref: tableRef, el: el, origXM: tableRef.xM, origYM: tableRef.yM, fm: tableFootprintM(tableRef) }];
+      }
       el.setPointerCapture(e.pointerId);
     });
 
@@ -1995,35 +2167,34 @@
       if (!moved){
         if (Math.abs(dxPx) < DRAG_THRESHOLD && Math.abs(dyPx) < DRAG_THRESHOLD) return;
         moved = true;
-        el.classList.add("dragging");
+        group.forEach(function(g){ g.el.classList.add("dragging"); });
       }
-      var fm = tableFootprintM(tableRef);
-      var maxXM = Math.max(0, state.roomWM - fm.widthM);
-      var maxYM = Math.max(0, state.roomHM - fm.heightM);
-      var newXM = Math.min(maxXM, Math.max(0, origXM + pxToM(dxPx)));
-      var newYM = Math.min(maxYM, Math.max(0, origYM + pxToM(dyPx)));
-      el.style.left = mToPx(newXM) + "px";
-      el.style.top = mToPx(newYM) + "px";
+      var d = computeGroupDelta(pxToM(dxPx), pxToM(dyPx), group);
+      group.forEach(function(g){
+        g.el.style.left = mToPx(g.origXM + d.dx) + "px";
+        g.el.style.top = mToPx(g.origYM + d.dy) + "px";
+      });
     });
 
     function endDrag(e){
       if (!dragging) return;
       dragging = false;
       if (moved){
-        el.classList.remove("dragging");
         var dxPx = e.clientX - startX;
         var dyPx = e.clientY - startY;
-        var fm = tableFootprintM(tableRef);
-        var maxXM = Math.max(0, state.roomWM - fm.widthM);
-        var maxYM = Math.max(0, state.roomHM - fm.heightM);
-        tableRef.xM = snapM(Math.min(maxXM, Math.max(0, origXM + pxToM(dxPx))));
-        tableRef.yM = snapM(Math.min(maxYM, Math.max(0, origYM + pxToM(dyPx))));
-        el.style.left = mToPx(tableRef.xM) + "px";
-        el.style.top = mToPx(tableRef.yM) + "px";
+        var d = computeGroupDelta(pxToM(dxPx), pxToM(dyPx), group);
+        group.forEach(function(g){
+          g.ref.xM = snapM(g.origXM + d.dx);
+          g.ref.yM = snapM(g.origYM + d.dy);
+          g.el.style.left = mToPx(g.ref.xM) + "px";
+          g.el.style.top = mToPx(g.ref.yM) + "px";
+          g.el.classList.remove("dragging");
+        });
         scheduleSave();
         justDragged = true;
       }
       moved = false;
+      group = [];
     }
     el.addEventListener("pointerup", endDrag);
     el.addEventListener("pointercancel", endDrag);
