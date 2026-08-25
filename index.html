@@ -58,9 +58,11 @@
     display:flex;
     flex-direction:column;
     padding:20px 18px;
-    gap:18px;
+    gap:6px;
     overflow-y:auto;
+    overflow-x:hidden;
   }
+  .sidebar.collapsed{ display:none; }
   .brand{
     display:flex;
     flex-direction:column;
@@ -99,17 +101,79 @@
     padding:14px;
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:0;
   }
-  .panel h2{
+  .folder-header{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width:100%;
+    background:none;
+    border:none;
+    padding:0;
+    margin:0;
+    cursor:pointer;
+    text-align:left;
+    touch-action:manipulation;
+  }
+  .folder-header:hover .folder-name{ color:var(--teal); }
+  .folder-header .chev{
+    display:inline-block;
+    font-size:9px;
+    color:var(--ink-dim);
+    transition:transform 0.15s ease;
+    flex-shrink:0;
+  }
+  .panel.open .folder-header .chev{ transform:rotate(90deg); }
+  .folder-header .folder-name{
     font-family:var(--font-mono);
     font-size:11px;
     text-transform:uppercase;
     letter-spacing:0.06em;
     color:var(--teal-dark);
-    margin:0 0 2px 0;
     font-weight:500;
   }
+  .folder-body{
+    display:none;
+    flex-direction:column;
+    gap:10px;
+    padding-top:12px;
+  }
+  .panel.open .folder-body{ display:flex; }
+  .folder-list{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    max-height:200px;
+    overflow-y:auto;
+  }
+  .folder-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    padding:7px 9px;
+    border:1px solid var(--panel-border);
+    border-radius:7px;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .folder-item:hover{ background:var(--teal-tint); border-color:#C7DED7; }
+  .folder-item-name{
+    flex:1;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .folder-item-delete{
+    background:none;
+    color:var(--red);
+    padding:3px 6px;
+    font-size:12px;
+    border-radius:5px;
+    flex-shrink:0;
+  }
+  .folder-item-delete:hover{ background:var(--red-tint); }
   .hint{
     font-size:12px;
     color:var(--ink-dim);
@@ -171,11 +235,14 @@
     background:var(--amber-tint);
     color:#5A3E10;
     border:1px solid #EED3A0;
-    padding:6px 11px;
+    padding:6px 7px 6px 11px;
     border-radius:20px;
     cursor:grab;
     touch-action:manipulation;
     user-select:none;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
     transition:transform 0.1s ease, box-shadow 0.1s ease;
   }
   .chip:active{ cursor:grabbing; }
@@ -184,8 +251,53 @@
     color:#3A2603;
     box-shadow:0 0 0 2px var(--amber-dark);
   }
+  .chip-delete{
+    background:none;
+    color:#8A6420;
+    opacity:0.7;
+    padding:1px 4px;
+    font-size:12px;
+    line-height:1;
+    border-radius:50%;
+    flex-shrink:0;
+  }
+  .chip-delete:hover{ opacity:1; background:rgba(0,0,0,0.08); }
 
   .row{ display:flex; gap:8px; }
+  .row-center{ align-items:center; }
+  .grow{ flex:1; }
+  .info-btn{
+    background:none;
+    border:1px solid var(--panel-border);
+    color:var(--teal-dark);
+    width:30px;
+    height:30px;
+    flex-shrink:0;
+    border-radius:7px;
+    font-size:14px;
+    padding:0;
+    touch-action:manipulation;
+  }
+  .info-btn:hover{ background:var(--teal-tint); }
+  .icon-btn-add{
+    background:var(--teal);
+    color:#fff;
+    width:34px;
+    height:auto;
+    flex-shrink:0;
+    border-radius:7px;
+    font-size:16px;
+    font-weight:700;
+    padding:0;
+    touch-action:manipulation;
+  }
+  .icon-btn-add:hover{ background:var(--teal-dark); }
+  .info-popover{
+    background:var(--teal-tint);
+    border:1px solid #C7DED7;
+    border-radius:7px;
+    padding:9px 10px;
+  }
   .dims-row{ display:flex; gap:8px; align-items:center; }
   .dim-field{
     flex:1;
@@ -282,6 +394,7 @@
   .stats{
     flex-direction:row;
     justify-content:space-between;
+    gap:10px;
     font-family:var(--font-mono);
     font-size:11.5px;
     color:var(--ink-dim);
@@ -608,87 +721,108 @@
       <input type="text" id="planTitle" class="plan-title-input" placeholder="Titel dieses Plans, z. B. „Klasse 7b“" maxlength="60" />
     </div>
 
-    <section class="panel">
-      <h2>1 · Raum &amp; Maßstab</h2>
-      <p class="hint">Raumgröße (Breite × Tiefe)</p>
-      <div class="dims-row">
-        <div class="dim-field"><input type="number" id="roomWidth" min="2" max="40" step="0.1" value="8" /><span>m</span></div>
-        <span class="dims-x">×</span>
-        <div class="dim-field"><input type="number" id="roomHeight" min="2" max="40" step="0.1" value="10" /><span>m</span></div>
-      </div>
-      <p class="hint">Tischgröße eines Doppeltisches (Breite × Tiefe) – ein Einzeltisch ist halb so breit</p>
-      <div class="dims-row">
-        <div class="dim-field"><input type="number" id="tableWidthM" min="0.3" max="4" step="0.1" value="1.4" /><span>m</span></div>
-        <span class="dims-x">×</span>
-        <div class="dim-field"><input type="number" id="tableDepthM" min="0.3" max="3" step="0.1" value="0.7" /><span>m</span></div>
-      </div>
-      <p class="hint">Raster: fest 0,1 m</p>
-    </section>
-
-    <section class="panel">
-      <h2>2 · Namen importieren</h2>
-      <label class="file-drop" id="fileDrop" for="csvInput">⇪ CSV-Datei wählen</label>
-      <input type="file" id="csvInput" accept=".csv,text/csv" hidden />
-      <label class="checkbox"><input type="checkbox" id="skipHeader" checked /> Erste Zeile ist Überschrift</label>
-      <p class="hint">Ein Name pro Zeile – oder „Nachname,Vorname“. Wird beim Import auf „Vorname N.“ gekürzt. Klicken oder ziehen zum Zuweisen. Doppelklick auf einen zugewiesenen Namen fixiert ihn (📌) – fixierte Namen bleiben bei Verschieben und Zufallsverteilung unangetastet.</p>
-      <div class="student-pool" id="studentPool"></div>
-      <button class="danger-link" id="clearNames">Namensliste löschen</button>
-    </section>
-
-    <section class="panel">
-      <h2>3 · Tische</h2>
-      <div class="row">
-        <input type="number" id="tableCount" min="1" max="60" value="12" />
-        <button id="createTables">Tische erstellen</button>
-      </div>
-      <div class="row add-buttons">
-        <button class="ghost" id="addSingle">+ Einzeltisch</button>
-        <button class="ghost" id="addDouble">+ Doppeltisch</button>
-      </div>
-      <p class="hint">Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Doppelklick dreht ihn um 90°. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben.</p>
-    </section>
-
-    <section class="panel">
-      <h2>4 · Zufallsverteilung</h2>
-      <button class="ghost full" id="randomizeBtn">🎲 Namen zufällig verteilen</button>
-      <p class="hint">Verteilt alle Namen zufällig auf die vorhandenen Plätze – auch bereits zugewiesene werden dabei neu gemischt.</p>
-    </section>
-
-    <section class="panel">
-      <h2>5 · Speichern &amp; Laden</h2>
-
-      <div class="save-group">
-        <p class="hint"><strong>Raum mit Tischanordnung</strong></p>
-        <button class="ghost full" id="saveLayoutBtn">Aktuellen Raum speichern …</button>
-        <div class="select-row">
-          <select id="layoutSelect"></select>
-          <button class="icon-btn-sm" id="loadLayoutBtn" title="Laden">⇦ Laden</button>
-          <button class="icon-btn-sm danger" id="deleteLayoutBtn" title="Löschen">🗑</button>
+    <section class="panel open" id="folderRoom">
+      <button class="folder-header" data-folder="folderRoom">
+        <span class="chev">▸</span><span class="folder-name">Raum &amp; Maße</span>
+      </button>
+      <div class="folder-body">
+        <p class="hint">Raumgröße (Breite × Tiefe)</p>
+        <div class="dims-row">
+          <div class="dim-field"><input type="number" id="roomWidth" min="2" max="40" step="0.1" value="8" /><span>m</span></div>
+          <span class="dims-x">×</span>
+          <div class="dim-field"><input type="number" id="roomHeight" min="2" max="40" step="0.1" value="10" /><span>m</span></div>
         </div>
+        <p class="hint">Tischgröße eines Doppeltisches (Breite × Tiefe) – ein Einzeltisch ist halb so breit</p>
+        <div class="dims-row">
+          <div class="dim-field"><input type="number" id="tableWidthM" min="0.3" max="4" step="0.1" value="1.4" /><span>m</span></div>
+          <span class="dims-x">×</span>
+          <div class="dim-field"><input type="number" id="tableDepthM" min="0.3" max="3" step="0.1" value="0.7" /><span>m</span></div>
+        </div>
+        <p class="hint">Raster</p>
+        <div class="dims-row">
+          <div class="dim-field"><input type="number" id="gridM" min="0.1" max="1" step="0.1" value="0.1" /><span>m</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="folderTables">
+      <button class="folder-header" data-folder="folderTables">
+        <span class="chev">▸</span><span class="folder-name">Tische</span>
+      </button>
+      <div class="folder-body">
+        <div class="row">
+          <input type="number" id="tableCount" min="1" max="32" value="12" />
+          <button id="createTables">Hinzufügen</button>
+        </div>
+        <div class="row add-buttons">
+          <button class="ghost" id="addSingle">+ Einzeltisch</button>
+          <button class="ghost" id="addDouble">+ Doppeltisch</button>
+        </div>
+        <p class="hint">Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Doppelklick dreht ihn um 90°. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben. Insgesamt maximal 32 Tische.</p>
+      </div>
+    </section>
+
+    <section class="panel open" id="folderNames">
+      <button class="folder-header" data-folder="folderNames">
+        <span class="chev">▸</span><span class="folder-name">Namen importieren</span>
+      </button>
+      <div class="folder-body">
+        <div class="row row-center">
+          <label class="file-drop grow" id="fileDrop" for="csvInput">⇪ CSV-Datei wählen</label>
+          <button class="info-btn" id="csvInfoToggle" type="button" title="Hinweise zum Import" aria-label="Hinweise zum Import">ⓘ</button>
+        </div>
+        <input type="file" id="csvInput" accept=".csv,text/csv" hidden />
+        <label class="checkbox"><input type="checkbox" id="skipHeader" checked /> Erste Zeile ist Überschrift</label>
+        <p class="hint info-popover" id="csvInfoText" hidden>Ein Name pro Zeile – oder „Nachname,Vorname“. Wird beim Import auf „Vorname N.“ gekürzt.</p>
+        <div class="row">
+          <input type="text" id="newNameInput" placeholder="Name, Vorname" maxlength="60" />
+          <button class="icon-btn-add" id="addNameBtn" title="Name hinzufügen" aria-label="Name hinzufügen">+</button>
+        </div>
+        <div class="student-pool" id="studentPool"></div>
+        <button class="danger-link" id="clearNames">Namensliste löschen</button>
+      </div>
+    </section>
+
+    <section class="panel" id="folderRandomize">
+      <button class="folder-header" data-folder="folderRandomize">
+        <span class="chev">▸</span><span class="folder-name">Zufallsverteilung</span>
+      </button>
+      <div class="folder-body">
+        <button class="ghost full" id="randomizeBtn">🎲 Namen zufällig verteilen</button>
+        <p class="hint">Verteilt alle Namen zufällig auf die vorhandenen Plätze – auch bereits zugewiesene werden dabei neu gemischt.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="folderRooms">
+      <button class="folder-header" data-folder="folderRooms">
+        <span class="chev">▸</span><span class="folder-name">Räume</span>
+      </button>
+      <div class="folder-body">
+        <button class="ghost full" id="saveLayoutBtn">+ Aktuellen Raum speichern …</button>
+        <div class="folder-list" id="layoutFolderList"></div>
         <div class="row">
           <button class="ghost" id="exportLayoutBtn">⬇ Exportieren</button>
           <button class="ghost" id="importLayoutBtn">⬆ Importieren</button>
         </div>
         <input type="file" id="importLayoutFile" accept=".json,application/json" hidden />
+        <p class="hint">Enthält Raumgröße, Tischmaße und -anordnung. Export/Import als .json-Datei zum Weitergeben an Kolleg:innen.</p>
       </div>
+    </section>
 
-      <hr class="divider" />
-
-      <div class="save-group">
-        <p class="hint"><strong>Sitzordnung</strong></p>
-        <button class="ghost full" id="saveSeatingBtn">Aktuelle Sitzordnung speichern …</button>
-        <div class="select-row">
-          <select id="seatingSelect"></select>
-          <button class="icon-btn-sm" id="loadSeatingBtn" title="Laden">⇦ Laden</button>
-          <button class="icon-btn-sm danger" id="deleteSeatingBtn" title="Löschen">🗑</button>
-        </div>
+    <section class="panel" id="folderClasses">
+      <button class="folder-header" data-folder="folderClasses">
+        <span class="chev">▸</span><span class="folder-name">Klassen</span>
+      </button>
+      <div class="folder-body">
+        <button class="ghost full" id="saveSeatingBtn">+ Aktuelle Klasse speichern …</button>
+        <div class="folder-list" id="seatingFolderList"></div>
         <div class="row">
           <button class="ghost" id="exportSeatingBtn">⬇ Exportieren</button>
           <button class="ghost" id="importSeatingBtn">⬆ Importieren</button>
         </div>
         <input type="file" id="importSeatingFile" accept=".json,application/json" hidden />
+        <p class="hint">Enthält Namen und Platzzuweisungen dieser Klasse. Export/Import als .json-Datei zum Weitergeben an Kolleg:innen.</p>
       </div>
-      <p class="hint">Export/Import speichert bzw. lädt eine .json-Datei – ideal zum Weitergeben an Kolleg:innen per Mail, Chat oder Cloud-Ordner. Speichern &amp; Laden legt Stände zusätzlich direkt im Browser ab.</p>
     </section>
 
     <section class="panel stats">
@@ -705,6 +839,7 @@
 
   <main class="canvas-wrap">
     <div class="canvas-toolbar">
+      <button class="print-btn" id="sidebarToggleBtn" title="Seitenleiste ein-/ausblenden">☰</button>
       <button class="print-btn" id="printBtn" title="Raumplan drucken">🖶 Drucken</button>
       <button class="print-btn" id="multiSelectBtn" title="Mehrere Tische auswählen">☑️ Mehrere auswählen</button>
     </div>
@@ -730,15 +865,22 @@
   "use strict";
 
   var BASE_PPM = 80;         // Pixel pro Meter bei 100% Zoom
-  var GRID_M = 0.1;          // festes Raster: 0,1 m
+  var DEFAULT_GRID_M = 0.1;  // Standard-Rastermaß
   var STORAGE_KEY = "sitzplan-v2";
   var ZOOM_MIN = 0.4, ZOOM_MAX = 2.5, ZOOM_STEP = 1.2;
+  var MAX_TABLES = 32;
   var zoom = 1;
 
   function ppm(){ return BASE_PPM * zoom; }
   function mToPx(m){ return Math.round(m * ppm()); }
   function pxToM(px){ return px / ppm(); }
-  function snapM(v){ return Math.round(v * 10) / 10; } // rastet auf 0,1 m (fest)
+  // Rastet auf das aktuell eingestellte Rastermaß (state.gridM); rechnet in
+  // Zehntel-Metern, um Fließkomma-Rundungsfehler zu vermeiden.
+  function snapM(v){
+    var gridTenths = Math.max(1, Math.round(state.gridM * 10));
+    var vTenths = Math.round(v * 10);
+    return Math.round(vTenths / gridTenths) * gridTenths / 10;
+  }
 
   var state = {
     title: "",             // frei wählbarer Titel dieses Plans (z. B. Klassenname)
@@ -746,6 +888,7 @@
     roomHM: 10,           // Raumtiefe in m
     tableWM: 1.4,         // Tischbreite in m
     tableDM: 0.7,          // Tischtiefe in m
+    gridM: 0.1,            // Rastermaß in m (einstellbar 0,1–1 m)
     students: [],       // {id, name}
     tables: [],         // {id, type:'single'|'double', rotation, xM, yM} – Position in Metern (zoomunabhängig)
     assignments: {},     // seatKey ("tableId:0") -> studentId
@@ -764,6 +907,19 @@
   var rulerLeft = document.getElementById("rulerLeft");
   var canvasScroll = document.getElementById("canvasScroll");
   var saveStatus = document.getElementById("saveStatus");
+
+  // ---------- Ordner (ein-/ausklappbare Sidebar-Abschnitte) ----------
+  document.querySelectorAll(".folder-header").forEach(function(header){
+    header.addEventListener("click", function(){
+      var panel = header.closest(".panel");
+      if (panel) panel.classList.toggle("open");
+    });
+  });
+
+  var sidebarEl = document.querySelector(".sidebar");
+  document.getElementById("sidebarToggleBtn").addEventListener("click", function(){
+    sidebarEl.classList.toggle("collapsed");
+  });
 
   // ---------- Zoom ----------
   function setZoom(z){
@@ -977,6 +1133,7 @@
               if (typeof parsed.tableDM !== "number") parsed.tableDM = 0.7;
               if (!parsed.pinned || typeof parsed.pinned !== "object") parsed.pinned = {};
               if (typeof parsed.title !== "string") parsed.title = "";
+              if (typeof parsed.gridM !== "number") parsed.gridM = DEFAULT_GRID_M;
               state = parsed;
               if (legacy){
                 // Ganz altes Layout kannte keinen Maßstab – Tische neu anordnen, Namen & Zuweisungen bleiben.
@@ -1007,6 +1164,7 @@
     document.getElementById("roomHeight").value = state.roomHM;
     document.getElementById("tableWidthM").value = state.tableWM;
     document.getElementById("tableDepthM").value = state.tableDM;
+    document.getElementById("gridM").value = state.gridM;
   }
 
   // ---------- CSV import ----------
@@ -1020,24 +1178,26 @@
     return vorname + " " + nachname.charAt(0).toUpperCase() + ".";
   }
 
+  function parseNameLine(line){
+    var parts = line.split(/[,;\t]/).map(function(p){
+      return p.trim().replace(/^"(.*)"$/, "$1").trim();
+    }).filter(function(p){ return p.length > 0; });
+    if (parts.length === 0) return null;
+    if (parts.length >= 2){
+      // Spaltenformat: Nachname,Vorname
+      return shortenName(parts[1], parts[0]);
+    }
+    var words = parts[0].split(/\s+/).filter(function(w){ return w.length > 0; });
+    return words.length >= 2 ? shortenName(words[0], words[words.length - 1]) : parts[0];
+  }
+
   function parseCsv(text){
     var lines = text.split(/\r\n|\n|\r/).map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
     var skip = document.getElementById("skipHeader").checked;
     if (skip) lines = lines.slice(1);
     var names = [];
     lines.forEach(function(line){
-      var parts = line.split(/[,;\t]/).map(function(p){
-        return p.trim().replace(/^"(.*)"$/, "$1").trim();
-      }).filter(function(p){ return p.length > 0; });
-      if (parts.length === 0) return;
-      var name;
-      if (parts.length >= 2){
-        // Spaltenformat: Nachname,Vorname
-        name = shortenName(parts[1], parts[0]);
-      } else {
-        var words = parts[0].split(/\s+/).filter(function(w){ return w.length > 0; });
-        name = words.length >= 2 ? shortenName(words[0], words[words.length - 1]) : parts[0];
-      }
+      var name = parseNameLine(line);
       if (name) names.push(name);
     });
     return names;
@@ -1093,6 +1253,42 @@
     selected = null;
     render();
     scheduleSave();
+  });
+
+  // Einzelnen Namen unabhängig vom Import hinzufügen bzw. löschen.
+  function deleteStudent(studentId){
+    state.students = state.students.filter(function(s){ return s.id !== studentId; });
+    Object.keys(state.assignments).forEach(function(k){
+      if (state.assignments[k] === studentId) delete state.assignments[k];
+    });
+    delete state.pinned[studentId];
+    if (selected && selected.studentId === studentId) selected = null;
+    render();
+    scheduleSave();
+  }
+
+  document.getElementById("addNameBtn").addEventListener("click", function(){
+    var input = document.getElementById("newNameInput");
+    var raw = input.value.trim();
+    if (!raw) return;
+    var name = parseNameLine(raw);
+    if (!name) return;
+    state.students.push({ id: "s" + (state.nextStudentId++), name: name });
+    input.value = "";
+    render();
+    scheduleSave();
+    input.focus();
+  });
+  document.getElementById("newNameInput").addEventListener("keydown", function(e){
+    if (e.key === "Enter"){
+      e.preventDefault();
+      document.getElementById("addNameBtn").click();
+    }
+  });
+
+  document.getElementById("csvInfoToggle").addEventListener("click", function(){
+    var el = document.getElementById("csvInfoText");
+    el.hidden = !el.hidden;
   });
 
   // ---------- Zufallsverteilung ----------
@@ -1252,6 +1448,10 @@
   }
 
   function addTable(type){
+    if (state.tables.length >= MAX_TABLES){
+      window.alert("Es sind bereits " + MAX_TABLES + " Tische vorhanden – mehr sind nicht möglich.");
+      return;
+    }
     var pos = nextFreePosition(type);
     state.tables.push({ id: "t" + (state.nextTableId++), type: type, rotation: 0, xM: pos.xM, yM: pos.yM });
     render();
@@ -1283,17 +1483,19 @@
   }
 
   document.getElementById("createTables").addEventListener("click", function(){
-    var n = Math.max(1, Math.min(60, parseInt(document.getElementById("tableCount").value, 10) || 1));
-    if (state.tables.length > 0){
-      var ok = window.confirm("Bestehende Tische und Zuweisungen ersetzen durch " + n + " neue Doppeltische?");
-      if (!ok) return;
+    var requested = Math.max(1, Math.min(MAX_TABLES, parseInt(document.getElementById("tableCount").value, 10) || 1));
+    var room = MAX_TABLES - state.tables.length;
+    if (room <= 0){
+      window.alert("Es sind bereits " + MAX_TABLES + " Tische vorhanden – mehr sind nicht möglich.");
+      return;
     }
-    state.tables = [];
-    state.assignments = {};
-    state.pinned = {};
+    var n = Math.min(requested, room);
     for (var i = 0; i < n; i++){
       var pos = nextFreePosition("double");
       state.tables.push({ id: "t" + (state.nextTableId++), type: "double", rotation: 0, xM: pos.xM, yM: pos.yM });
+    }
+    if (n < requested){
+      window.alert("Es wurden nur " + n + " von " + requested + " Tischen hinzugefügt (Obergrenze " + MAX_TABLES + " Tische erreicht).");
     }
     render();
     scheduleSave();
@@ -1330,10 +1532,20 @@
     render();
     scheduleSave();
   }
+  function applyGridSettings(){
+    var gEl = document.getElementById("gridM");
+    var g = clampNum(gEl.value, 0.1, 1, state.gridM);
+    state.gridM = Math.round(g * 10) / 10; // auf 0,1-m-Schritte runden
+    gEl.value = state.gridM;
+    clampAllTables(); // rastet bestehende Tische auf das neue Raster ein
+    render();
+    scheduleSave();
+  }
   document.getElementById("roomWidth").addEventListener("change", applyRoomSettings);
   document.getElementById("roomHeight").addEventListener("change", applyRoomSettings);
   document.getElementById("tableWidthM").addEventListener("change", applyTableSettings);
   document.getElementById("tableDepthM").addEventListener("change", applyTableSettings);
+  document.getElementById("gridM").addEventListener("change", applyGridSettings);
   document.getElementById("planTitle").addEventListener("input", function(e){
     state.title = e.target.value;
     scheduleSave();
@@ -1342,7 +1554,7 @@
   document.getElementById("resetAll").addEventListener("click", function(){
     var ok = window.confirm("Wirklich alles zurücksetzen? Namen, Tische und Zuweisungen gehen verloren.");
     if (!ok) return;
-    state = { title: "", roomWM: 8, roomHM: 10, tableWM: 1.4, tableDM: 0.7, students: [], tables: [], assignments: {}, pinned: {}, nextStudentId: 1, nextTableId: 1 };
+    state = { title: "", roomWM: 8, roomHM: 10, tableWM: 1.4, tableDM: 0.7, gridM: DEFAULT_GRID_M, students: [], tables: [], assignments: {}, pinned: {}, nextStudentId: 1, nextTableId: 1 };
     selected = null;
     syncSettingsInputs();
     render();
@@ -1403,30 +1615,40 @@
       if (!seatedIds[sid]) delete state.pinned[sid];
     });
   }
-  function fillSelect(sel, list, emptyLabel){
-    sel.innerHTML = "";
+  function fillFolderList(container, list, emptyText, onLoad, onDelete){
+    container.innerHTML = "";
     if (list.length === 0){
-      var opt0 = document.createElement("option");
-      opt0.value = "";
-      opt0.textContent = emptyLabel;
-      sel.appendChild(opt0);
+      var empty = document.createElement("p");
+      empty.className = "hint";
+      empty.textContent = emptyText;
+      container.appendChild(empty);
       return;
     }
     list.forEach(function(entry){
-      var opt = document.createElement("option");
-      opt.value = entry.id;
-      opt.textContent = entry.name + " (" + formatSavedAt(entry.savedAt) + ")";
-      sel.appendChild(opt);
+      var item = document.createElement("div");
+      item.className = "folder-item";
+      var name = document.createElement("span");
+      name.className = "folder-item-name";
+      name.textContent = entry.name;
+      name.title = entry.name + " · " + formatSavedAt(entry.savedAt);
+      var del = document.createElement("button");
+      del.className = "folder-item-delete";
+      del.textContent = "🗑";
+      del.title = "Löschen";
+      del.addEventListener("click", function(e){ e.stopPropagation(); onDelete(entry.id); });
+      item.appendChild(name);
+      item.appendChild(del);
+      item.addEventListener("click", function(){ onLoad(entry.id); });
+      container.appendChild(item);
     });
   }
 
   // --- Raum mit Tischanordnung ---
-  function refreshLayoutList(selectId){
-    var sel = document.getElementById("layoutSelect");
+  function refreshLayoutList(){
+    var container = document.getElementById("layoutFolderList");
     readIndex(LAYOUTS_INDEX_KEY).then(function(list){
       list.sort(function(a, b){ return (b.savedAt || "").localeCompare(a.savedAt || ""); });
-      fillSelect(sel, list, "– kein gespeicherter Raum –");
-      if (selectId) sel.value = selectId;
+      fillFolderList(container, list, "Noch kein Raum gespeichert.", loadLayout, deleteLayout);
     });
   }
   function saveLayout(){
@@ -1437,6 +1659,7 @@
     var data = {
       roomWM: state.roomWM, roomHM: state.roomHM,
       tableWM: state.tableWM, tableDM: state.tableDM,
+      gridM: state.gridM,
       nextTableId: state.nextTableId,
       tables: JSON.parse(JSON.stringify(state.tables))
     };
@@ -1445,22 +1668,26 @@
       return writeIndex(LAYOUTS_INDEX_KEY, list).then(function(){
         return storageAdapter.impl.set("layout-data-" + id, JSON.stringify(data), false);
       });
-    }).then(function(){ refreshLayoutList(id); });
+    }).then(function(){ refreshLayoutList(); });
   }
   function loadLayout(id){
     if (!id || !storageAdapter.available) return;
     storageAdapter.impl.get("layout-data-" + id, false).then(function(res){
       if (!res || !res.value) return;
-      var ok = window.confirm("Aktuellen Raum mit Tischanordnung durch den gespeicherten Stand ersetzen?");
+      var ok = window.confirm("Diesen Raum laden? Die aktuelle Tischanordnung wird ersetzt, bereits zugewiesene Namen wandern zurück in die Namensliste.");
       if (!ok) return;
       try{
         var data = JSON.parse(res.value);
+        // Alle bisher zugewiesenen Namen zurück in die Liste – unabhängig davon, ob
+        // ID der alten und neuen Tische zufällig übereinstimmen.
+        state.assignments = {};
         state.roomWM = data.roomWM; state.roomHM = data.roomHM;
         state.tableWM = data.tableWM; state.tableDM = data.tableDM;
+        state.gridM = typeof data.gridM === "number" ? data.gridM : DEFAULT_GRID_M;
         state.nextTableId = data.nextTableId || state.nextTableId;
         state.tables = data.tables || [];
         migrateTablesToMeters(state.tables);
-        pruneAssignments();
+        cleanupPinned(); // niemand mehr zugewiesen -> entfernt alle Fixierungen
         selected = null;
         syncSettingsInputs();
         render();
@@ -1480,38 +1707,43 @@
     }).then(function(){ refreshLayoutList(); });
   }
 
-  // --- Sitzordnung ---
-  function refreshSeatingList(selectId){
-    var sel = document.getElementById("seatingSelect");
+  // --- Klassen (Sitzordnung) ---
+  function refreshSeatingList(){
+    var container = document.getElementById("seatingFolderList");
     readIndex(SEATINGS_INDEX_KEY).then(function(list){
       list.sort(function(a, b){ return (b.savedAt || "").localeCompare(a.savedAt || ""); });
-      fillSelect(sel, list, "– keine gespeicherte Sitzordnung –");
-      if (selectId) sel.value = selectId;
+      fillFolderList(container, list, "Noch keine Klasse gespeichert.", loadSeating, deleteSeating);
     });
   }
   function saveSeating(){
     if (!storageAdapter.available){ window.alert("Speichern ist in diesem Browser nicht verfügbar (lokaler Speicher blockiert)."); return; }
-    var name = window.prompt("Name für diese Sitzordnung:", defaultSaveName());
+    var name = window.prompt("Name für diese Klasse:", defaultSaveName());
     if (!name) return;
     var id = genId("S");
     var data = {
       students: JSON.parse(JSON.stringify(state.students)),
       assignments: JSON.parse(JSON.stringify(state.assignments)),
       pinned: JSON.parse(JSON.stringify(state.pinned)),
-      nextStudentId: state.nextStudentId
+      nextStudentId: state.nextStudentId,
+      // Klasse = vollständiger Stand inkl. Tischkonstellation und Raum-/Tischmaßen.
+      roomWM: state.roomWM, roomHM: state.roomHM,
+      tableWM: state.tableWM, tableDM: state.tableDM,
+      gridM: state.gridM,
+      nextTableId: state.nextTableId,
+      tables: JSON.parse(JSON.stringify(state.tables))
     };
     readIndex(SEATINGS_INDEX_KEY).then(function(list){
       list.push({ id: id, name: name, savedAt: new Date().toISOString() });
       return writeIndex(SEATINGS_INDEX_KEY, list).then(function(){
         return storageAdapter.impl.set("seating-data-" + id, JSON.stringify(data), false);
       });
-    }).then(function(){ refreshSeatingList(id); });
+    }).then(function(){ refreshSeatingList(); });
   }
   function loadSeating(id){
     if (!id || !storageAdapter.available) return;
     storageAdapter.impl.get("seating-data-" + id, false).then(function(res){
       if (!res || !res.value) return;
-      var ok = window.confirm("Aktuelle Sitzordnung (Namen und Platzzuweisungen) durch den gespeicherten Stand ersetzen?");
+      var ok = window.confirm("Diese Klasse laden? Aktuelle Namen und Tische werden vollständig durch den gespeicherten Stand ersetzt.");
       if (!ok) return;
       try{
         var data = JSON.parse(res.value);
@@ -1519,8 +1751,21 @@
         state.assignments = data.assignments || {};
         state.pinned = data.pinned || {};
         state.nextStudentId = data.nextStudentId || state.nextStudentId;
+        // Ältere gespeicherte Klassen (vor dieser Funktion) enthalten evtl. keine
+        // Tisch-/Raumdaten – in dem Fall bleiben Raum und Tische unverändert.
+        if (typeof data.roomWM === "number") state.roomWM = data.roomWM;
+        if (typeof data.roomHM === "number") state.roomHM = data.roomHM;
+        if (typeof data.tableWM === "number") state.tableWM = data.tableWM;
+        if (typeof data.tableDM === "number") state.tableDM = data.tableDM;
+        if (typeof data.gridM === "number") state.gridM = data.gridM;
+        if (Array.isArray(data.tables)){
+          state.tables = data.tables;
+          migrateTablesToMeters(state.tables);
+          recomputeNextTableId(data.nextTableId);
+        }
         selected = null;
         pruneAssignments();
+        syncSettingsInputs();
         render();
         scheduleSave();
       }catch(e){ /* ignore corrupt data */ }
@@ -1528,7 +1773,7 @@
   }
   function deleteSeating(id){
     if (!id || !storageAdapter.available) return;
-    var ok = window.confirm("Diese gespeicherte Sitzordnung wirklich löschen?");
+    var ok = window.confirm("Diese gespeicherte Klasse wirklich löschen?");
     if (!ok) return;
     readIndex(SEATINGS_INDEX_KEY).then(function(list){
       var filtered = list.filter(function(e){ return e.id !== id; });
@@ -1539,19 +1784,7 @@
   }
 
   document.getElementById("saveLayoutBtn").addEventListener("click", saveLayout);
-  document.getElementById("loadLayoutBtn").addEventListener("click", function(){
-    loadLayout(document.getElementById("layoutSelect").value);
-  });
-  document.getElementById("deleteLayoutBtn").addEventListener("click", function(){
-    deleteLayout(document.getElementById("layoutSelect").value);
-  });
   document.getElementById("saveSeatingBtn").addEventListener("click", saveSeating);
-  document.getElementById("loadSeatingBtn").addEventListener("click", function(){
-    loadSeating(document.getElementById("seatingSelect").value);
-  });
-  document.getElementById("deleteSeatingBtn").addEventListener("click", function(){
-    deleteSeating(document.getElementById("seatingSelect").value);
-  });
 
   // ---------- Datei-Export / -Import (zum Weitergeben an Kolleg:innen) ----------
   function slugifyFilename(name){
@@ -1615,13 +1848,14 @@
       exportedAt: new Date().toISOString(),
       roomWM: state.roomWM, roomHM: state.roomHM,
       tableWM: state.tableWM, tableDM: state.tableDM,
+      gridM: state.gridM,
       nextTableId: state.nextTableId,
       tables: JSON.parse(JSON.stringify(state.tables))
     };
     downloadJson(data, slugifyFilename(name) + ".json");
   }
   function exportSeating(){
-    var name = window.prompt("Name für den Export dieser Sitzordnung:", defaultSaveName());
+    var name = window.prompt("Name für den Export dieser Klasse:", defaultSaveName());
     if (!name) return;
     var data = {
       kind: "sitzplan-sitzordnung",
@@ -1631,7 +1865,12 @@
       students: JSON.parse(JSON.stringify(state.students)),
       assignments: JSON.parse(JSON.stringify(state.assignments)),
       pinned: JSON.parse(JSON.stringify(state.pinned)),
-      nextStudentId: state.nextStudentId
+      nextStudentId: state.nextStudentId,
+      roomWM: state.roomWM, roomHM: state.roomHM,
+      tableWM: state.tableWM, tableDM: state.tableDM,
+      gridM: state.gridM,
+      nextTableId: state.nextTableId,
+      tables: JSON.parse(JSON.stringify(state.tables))
     };
     downloadJson(data, slugifyFilename(name) + ".json");
   }
@@ -1645,25 +1884,27 @@
         window.alert("Diese Datei enthält keinen gültigen Raum-Export.");
         return;
       }
-      var ok = window.confirm('Raum "' + (data.name || file.name) + '" laden und den aktuellen Raum ersetzen?');
+      var ok = window.confirm('Raum "' + (data.name || file.name) + '" laden? Die aktuelle Tischanordnung wird ersetzt, bereits zugewiesene Namen wandern zurück in die Namensliste.');
       if (!ok) return;
+      state.assignments = {};
       state.roomWM = typeof data.roomWM === "number" ? data.roomWM : state.roomWM;
       state.roomHM = typeof data.roomHM === "number" ? data.roomHM : state.roomHM;
       state.tableWM = typeof data.tableWM === "number" ? data.tableWM : state.tableWM;
       state.tableDM = typeof data.tableDM === "number" ? data.tableDM : state.tableDM;
+      state.gridM = typeof data.gridM === "number" ? data.gridM : state.gridM;
       state.tables = data.tables;
       state.tables.forEach(function(t){ if (typeof t.rotation !== "number") t.rotation = 0; });
       migrateTablesToMeters(state.tables);
       recomputeNextTableId(data.nextTableId);
-      pruneAssignments();
+      cleanupPinned();
       selected = null;
       syncSettingsInputs();
       render();
       scheduleSave();
       addToIndexAndStore(LAYOUTS_INDEX_KEY, "layout-data-", data.name || file.name, {
         roomWM: state.roomWM, roomHM: state.roomHM, tableWM: state.tableWM, tableDM: state.tableDM,
-        nextTableId: state.nextTableId, tables: state.tables
-      }).then(function(id){ refreshLayoutList(id); });
+        gridM: state.gridM, nextTableId: state.nextTableId, tables: state.tables
+      }).then(function(id){ refreshLayoutList(); });
     }).catch(function(err){ window.alert(err.message || "Datei konnte nicht gelesen werden."); });
   }
   function importSeatingFile(file){
@@ -1673,22 +1914,36 @@
       try{ data = JSON.parse(text); }
       catch(e){ window.alert("Diese Datei ist kein gültiges JSON."); return; }
       if (!data || data.kind !== "sitzplan-sitzordnung" || !Array.isArray(data.students)){
-        window.alert("Diese Datei enthält keine gültige Sitzordnung.");
+        window.alert("Diese Datei enthält keine gültige Klasse.");
         return;
       }
-      var ok = window.confirm('Sitzordnung "' + (data.name || file.name) + '" laden und die aktuelle Sitzordnung ersetzen?');
+      var ok = window.confirm('Klasse "' + (data.name || file.name) + '" laden? Aktuelle Namen und Tische werden vollständig ersetzt.');
       if (!ok) return;
       state.students = data.students;
       state.assignments = data.assignments || {};
       state.pinned = data.pinned || {};
       recomputeNextStudentId(data.nextStudentId);
+      if (typeof data.roomWM === "number") state.roomWM = data.roomWM;
+      if (typeof data.roomHM === "number") state.roomHM = data.roomHM;
+      if (typeof data.tableWM === "number") state.tableWM = data.tableWM;
+      if (typeof data.tableDM === "number") state.tableDM = data.tableDM;
+      if (typeof data.gridM === "number") state.gridM = data.gridM;
+      if (Array.isArray(data.tables)){
+        state.tables = data.tables;
+        state.tables.forEach(function(t){ if (typeof t.rotation !== "number") t.rotation = 0; });
+        migrateTablesToMeters(state.tables);
+        recomputeNextTableId(data.nextTableId);
+      }
       selected = null;
       pruneAssignments();
+      syncSettingsInputs();
       render();
       scheduleSave();
       addToIndexAndStore(SEATINGS_INDEX_KEY, "seating-data-", data.name || file.name, {
-        students: state.students, assignments: state.assignments, pinned: state.pinned, nextStudentId: state.nextStudentId
-      }).then(function(id){ refreshSeatingList(id); });
+        students: state.students, assignments: state.assignments, pinned: state.pinned, nextStudentId: state.nextStudentId,
+        roomWM: state.roomWM, roomHM: state.roomHM, tableWM: state.tableWM, tableDM: state.tableDM,
+        gridM: state.gridM, nextTableId: state.nextTableId, tables: state.tables
+      }).then(function(id){ refreshSeatingList(); });
     }).catch(function(err){ window.alert(err.message || "Datei konnte nicht gelesen werden."); });
   }
 
@@ -1778,7 +2033,7 @@
   // Gitterlinien (0,1 m fein / 1 m fett) neu zeichnen – Abstand hängt vom Zoom ab.
   function renderCanvasGrid(){
     var boldPx = Math.max(2, mToPx(1));
-    var finePx = mToPx(GRID_M);
+    var finePx = mToPx(state.gridM);
     var layers = [
       "repeating-linear-gradient(0deg, var(--grid-line-strong) 0 1px, transparent 1px " + boldPx + "px)",
       "repeating-linear-gradient(90deg, var(--grid-line-strong) 0 1px, transparent 1px " + boldPx + "px)"
@@ -1816,9 +2071,24 @@
     unassignedStudents().forEach(function(s){
       var chip = document.createElement("span");
       chip.className = "chip" + (selected && selected.studentId === s.id && selected.from === "pool" ? " selected" : "");
-      chip.textContent = s.name;
       chip.draggable = true;
       chip.dataset.studentId = s.id;
+
+      var label = document.createElement("span");
+      label.textContent = s.name;
+      chip.appendChild(label);
+
+      var del = document.createElement("button");
+      del.className = "chip-delete";
+      del.type = "button";
+      del.textContent = "×";
+      del.title = "Namen löschen";
+      del.setAttribute("aria-label", "Namen löschen");
+      del.addEventListener("click", function(e){
+        e.stopPropagation();
+        deleteStudent(s.id);
+      });
+      chip.appendChild(del);
 
       chip.addEventListener("dragstart", function(e){
         e.dataTransfer.setData("text/plain", JSON.stringify({ studentId: s.id, from: "pool" }));
