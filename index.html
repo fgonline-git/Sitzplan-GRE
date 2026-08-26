@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <title>Sitzplan – Klassenzimmer-Planer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Archivo+Expanded:wght@700&family=IBM+Plex+Mono:wght@400;500&family=Permanent+Marker&family=Architects+Daughter&family=Caveat:wght@600;700&family=Baloo+2:wght@600;700&family=Nunito:wght@400;600;700&family=Bungee&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#EDEFE6;
@@ -26,12 +26,227 @@
     --red:#BD5548;
     --red-tint:#F7E6E3;
     --board:#24413A;
+    --board-text:#EDF3EF;
+    --board-border:#16302A;
+    --canvas-bg:#F7F8F2;
     --grid-line:rgba(29,76,67,0.10);
     --grid-line-strong:rgba(29,76,67,0.20);
+    --occupant-text:#5A3E10;
+    --occupant-border:#EED3A0;
+    --occupant-selected-text:#3A2603;
+    --chip-delete-text:#8A6420;
+    --pinned-bg:#E3E8E5;
+    --pinned-text:#33413B;
+    --pinned-border:#C4CDC7;
+    --accent-border-light:#C7DED7;
     --font-display:'Space Grotesk',sans-serif;
     --font-body:'Inter',sans-serif;
     --font-mono:'JetBrains Mono',monospace;
     --radius:10px;
+  }
+
+  /* ---------- Konzept 2: Aktenordner ---------- */
+  html[data-theme="aktenordner"]{
+    --bg:#F6F4EC;
+    --panel:#FFFFFF;
+    --panel-border:#D8D2BE;
+    --ink:#202224;
+    --ink-dim:#4E5257;
+    --teal:#1F4E8C;
+    --teal-dark:#163862;
+    --teal-tint:#E3ECF6;
+    --amber:#E0862E;
+    --amber-dark:#A35F1C;
+    --amber-tint:#FBEBDA;
+    --red:#C0392B;
+    --red-tint:#F7E3DF;
+    --board:#16345A;
+    --board-text:#F4F1EA;
+    --board-border:#0E2540;
+    --canvas-bg:#FBFAF5;
+    --grid-line:rgba(32,34,36,0.08);
+    --grid-line-strong:rgba(32,34,36,0.16);
+    --occupant-text:#163862;
+    --occupant-border:#BCD0E6;
+    --occupant-selected-text:#0E2540;
+    --chip-delete-text:#8B5A22;
+    --pinned-bg:#E7E4D6;
+    --pinned-text:#3A3A34;
+    --pinned-border:#CFC9B4;
+    --accent-border-light:#BCD0E6;
+    --font-display:'Archivo Expanded',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+
+  /* ---------- Konzept 4: Magnettafel ---------- */
+  html[data-theme="magnettafel"]{
+    --bg:#F1F2F0;
+    --panel:#FFFFFF;
+    --panel-border:#B7BCC2;
+    --ink:#22262B;
+    --ink-dim:#565C63;
+    --teal:#1E6FD9;
+    --teal-dark:#12508F;
+    --teal-tint:#E5F0FC;
+    --amber:#2E9E5B;
+    --amber-dark:#1F7A45;
+    --amber-tint:#E3F7EC;
+    --red:#E23B3B;
+    --red-tint:#FCE7E7;
+    --board:#12508F;
+    --board-text:#FFFFFF;
+    --board-border:#0B3868;
+    --canvas-bg:#FFFFFF;
+    --grid-line:rgba(34,38,43,0.05);
+    --grid-line-strong:rgba(34,38,43,0.12);
+    --occupant-text:#1F7A45;
+    --occupant-border:#2E9E5B;
+    --occupant-selected-text:#12502C;
+    --chip-delete-text:#1F7A45;
+    --pinned-bg:#ECEDEC;
+    --pinned-text:#3A3F45;
+    --pinned-border:#C7CBCF;
+    --accent-border-light:#BFDCF7;
+    --font-display:'Permanent Marker',cursive;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+
+  /* ---------- Konzept 5: Overheadfolie ---------- */
+  html[data-theme="overheadfolie"]{
+    --bg:#DCEAF3;
+    --panel:#EFF6FA;
+    --panel-border:#A9CBE0;
+    --ink:#1B4E7A;
+    --ink-dim:#3E6E93;
+    --teal:#1B6FA8;
+    --teal-dark:#123A5C;
+    --teal-tint:#D7EAF5;
+    --amber:#E8B339;
+    --amber-dark:#8A6414;
+    --amber-tint:#FBF1D8;
+    --red:#C64B3C;
+    --red-tint:#F8E1DC;
+    --board:#123A5C;
+    --board-text:#EAF3FA;
+    --board-border:#0B2C46;
+    --canvas-bg:#EAF3FA;
+    --grid-line:rgba(27,78,122,0.08);
+    --grid-line-strong:rgba(27,78,122,0.16);
+    --occupant-text:#8A6414;
+    --occupant-border:#E8B339;
+    --occupant-selected-text:#5C4415;
+    --chip-delete-text:#8A6414;
+    --pinned-bg:#E1EAF0;
+    --pinned-text:#35576F;
+    --pinned-border:#B9D2E2;
+    --accent-border-light:#A9CBE0;
+    --font-display:'Architects Daughter',cursive;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+
+  /* ---------- Konzept 1: Tafelkreide ---------- */
+  html[data-theme="tafelkreide"]{
+    --bg:#1E332C;
+    --panel:#233D34;
+    --panel-border:#3E5A4F;
+    --ink:#EDF3EF;
+    --ink-dim:#A8BDB4;
+    --teal:#7FB8D9;
+    --teal-dark:#5A93AE;
+    --teal-tint:#2A423D;
+    --amber:#F0D273;
+    --amber-dark:#C4A94F;
+    --amber-tint:#3F3823;
+    --red:#E8927E;
+    --red-tint:#402A24;
+    --board:#16241F;
+    --board-text:#EDF3EF;
+    --board-border:#0D1712;
+    --canvas-bg:#20362F;
+    --grid-line:rgba(237,243,239,0.08);
+    --grid-line-strong:rgba(237,243,239,0.16);
+    --occupant-text:#F0D273;
+    --occupant-border:#8A7434;
+    --occupant-selected-text:#3A2E0A;
+    --chip-delete-text:#C4A94F;
+    --pinned-bg:#2C3F38;
+    --pinned-text:#C9D6CF;
+    --pinned-border:#4A5F55;
+    --accent-border-light:#4A6A5D;
+    --font-display:'Caveat',cursive;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+
+  /* ---------- Konzept 3: Wandzeitung ---------- */
+  html[data-theme="wandzeitung"]{
+    --bg:#C9A579;
+    --panel:#FFF7E8;
+    --panel-border:#E2CBA0;
+    --ink:#3A2E22;
+    --ink-dim:#6B5A45;
+    --teal:#4E8F6B;
+    --teal-dark:#356048;
+    --teal-tint:#E4F0E7;
+    --amber:#F6D186;
+    --amber-dark:#9A7317;
+    --amber-tint:#FCEECB;
+    --red:#E27563;
+    --red-tint:#FBE4DF;
+    --board:#4A3928;
+    --board-text:#FFF7E8;
+    --board-border:#2E2115;
+    --canvas-bg:#D5B287;
+    --grid-line:rgba(58,46,34,0.10);
+    --grid-line-strong:rgba(58,46,34,0.20);
+    --occupant-text:#5A4515;
+    --occupant-border:#E2C07C;
+    --occupant-selected-text:#3A2C08;
+    --chip-delete-text:#9A7317;
+    --pinned-bg:#E9E1D2;
+    --pinned-text:#4A4030;
+    --pinned-border:#D2C6AC;
+    --accent-border-light:#BFE0CC;
+    --font-display:'Baloo 2',sans-serif;
+    --font-body:'Nunito',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+
+  /* ---------- Konzept 6: Spielplan ---------- */
+  html[data-theme="spielplan"]{
+    --bg:#E4CBA0;
+    --panel:#FBF1DC;
+    --panel-border:#D8BC8D;
+    --ink:#2E2418;
+    --ink-dim:#5C4B34;
+    --teal:#3B6EA5;
+    --teal-dark:#2A5079;
+    --teal-tint:#E1EBF4;
+    --amber:#E8B339;
+    --amber-dark:#8F6B14;
+    --amber-tint:#FBF0D6;
+    --red:#D64550;
+    --red-tint:#FAE0E1;
+    --board:#2E2418;
+    --board-text:#FBF1DC;
+    --board-border:#181209;
+    --canvas-bg:#EFDCB8;
+    --grid-line:rgba(46,36,24,0.10);
+    --grid-line-strong:rgba(46,36,24,0.22);
+    --occupant-text:#1F3B2A;
+    --occupant-border:#4F9153;
+    --occupant-selected-text:#0E2117;
+    --chip-delete-text:#8F6B14;
+    --pinned-bg:#E4DCC8;
+    --pinned-text:#4A4030;
+    --pinned-border:#CFC2A0;
+    --accent-border-light:#B7D0C8;
+    --font-display:'Bungee',sans-serif;
+    --font-body:'Nunito',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
@@ -53,12 +268,12 @@
   .sidebar{
     width:300px;
     min-width:300px;
-    background:var(--panel);
+    background:var(--bg);
     border-right:1px solid var(--panel-border);
     display:flex;
     flex-direction:column;
-    padding:20px 18px;
-    gap:6px;
+    padding:14px 16px;
+    gap:4px;
     overflow-y:auto;
     overflow-x:hidden;
   }
@@ -67,7 +282,7 @@
     display:flex;
     flex-direction:column;
     gap:2px;
-    margin-bottom:2px;
+    margin-bottom:0;
   }
   .brand h1{
     font-family:var(--font-display);
@@ -84,21 +299,23 @@
     letter-spacing:0.04em;
   }
   .plan-title-input{
-    margin-top:8px;
-    padding:7px 9px;
+    margin-top:6px;
+    padding:6px 9px;
     border:1px solid var(--panel-border);
     border-radius:7px;
     font-family:var(--font-body);
     font-size:13px;
     font-weight:600;
     color:var(--ink);
+    background:var(--panel);
     width:100%;
   }
   .plan-title-input::placeholder{ font-weight:400; color:var(--ink-dim); }
   .panel{
+    background:var(--panel);
     border:1px solid var(--panel-border);
     border-radius:var(--radius);
-    padding:14px;
+    padding:10px 12px;
     display:flex;
     flex-direction:column;
     gap:0;
@@ -136,8 +353,8 @@
   .folder-body{
     display:none;
     flex-direction:column;
-    gap:10px;
-    padding-top:12px;
+    gap:5px;
+    padding-top:7px;
   }
   .panel.open .folder-body{ display:flex; }
   .folder-list{
@@ -233,8 +450,8 @@
     font-size:12.5px;
     font-weight:500;
     background:var(--amber-tint);
-    color:#5A3E10;
-    border:1px solid #EED3A0;
+    color:var(--occupant-text);
+    border:1px solid var(--occupant-border);
     padding:6px 7px 6px 11px;
     border-radius:20px;
     cursor:grab;
@@ -248,12 +465,12 @@
   .chip:active{ cursor:grabbing; }
   .chip.selected{
     background:var(--amber);
-    color:#3A2603;
+    color:var(--occupant-selected-text);
     box-shadow:0 0 0 2px var(--amber-dark);
   }
   .chip-delete{
     background:none;
-    color:#8A6420;
+    color:var(--chip-delete-text);
     opacity:0.7;
     padding:1px 4px;
     font-size:12px;
@@ -294,7 +511,7 @@
   .icon-btn-add:hover{ background:var(--teal-dark); }
   .info-popover{
     background:var(--teal-tint);
-    border:1px solid #C7DED7;
+    border:1px solid var(--accent-border-light);
     border-radius:7px;
     padding:9px 10px;
   }
@@ -328,6 +545,16 @@
     font-family:var(--font-mono);
     font-size:13px;
     color:var(--ink);
+    background:var(--panel);
+  }
+  input[type=text]{
+    padding:8px 9px;
+    border:1px solid var(--panel-border);
+    border-radius:7px;
+    font-family:var(--font-body);
+    font-size:13px;
+    color:var(--ink);
+    background:var(--panel);
   }
   button{
     font-family:var(--font-body);
@@ -350,7 +577,7 @@
     flex:1;
     background:var(--teal-tint);
     color:var(--teal-dark);
-    border:1px solid #C7DED7;
+    border:1px solid var(--accent-border-light);
     font-size:12px;
   }
   .add-buttons{ flex-wrap:wrap; }
@@ -366,13 +593,13 @@
     font-family:var(--font-body);
     font-size:12px;
     color:var(--ink);
-    background:#fff;
+    background:var(--panel);
   }
   .select-row{ display:flex; gap:6px; align-items:center; }
   .icon-btn-sm{
     background:var(--teal-tint);
     color:var(--teal-dark);
-    border:1px solid #C7DED7;
+    border:1px solid var(--accent-border-light);
     border-radius:7px;
     padding:8px 10px;
     font-size:13px;
@@ -398,7 +625,7 @@
     font-family:var(--font-mono);
     font-size:11.5px;
     color:var(--ink-dim);
-    padding:10px 14px;
+    padding:8px 12px;
   }
   .stats div{ text-align:center; }
   .stats span{
@@ -411,7 +638,7 @@
 
   .sidebar-footer{
     margin-top:auto;
-    padding-top:8px;
+    padding-top:6px;
     border-top:1px solid var(--panel-border);
   }
   .save-status{
@@ -497,6 +724,8 @@
     font-weight:600;
   }
   .print-btn:hover{ background:var(--teal-tint); }
+  .print-btn:disabled{ opacity:0.4; cursor:default; }
+  .print-btn:disabled:hover{ background:var(--panel); }
   .print-btn.active{
     background:var(--teal);
     color:#fff;
@@ -515,14 +744,14 @@
   }
   .board{
     background:var(--board);
-    color:#EDF3EF;
+    color:var(--board-text);
     font-family:var(--font-mono);
     font-size:11px;
     letter-spacing:0.12em;
     text-transform:uppercase;
     text-align:center;
     padding:9px 0;
-    border-top:3px solid #16302A;
+    border-top:3px solid var(--board-border);
     flex-shrink:0;
   }
   .canvas-scroll{
@@ -569,7 +798,7 @@
   .ruler-left .tick{ left:0; width:26px; text-align:center; transform:translateY(-50%); }
   .canvas{
     position:relative;
-    background-color:#F7F8F2;
+    background-color:var(--canvas-bg);
     outline:2.5px solid var(--board);
     outline-offset:-2.5px;
   }
@@ -665,8 +894,8 @@
   }
   .seat .occupant{
     background:var(--amber-tint);
-    color:#5A3E10;
-    border:1px solid #EED3A0;
+    color:var(--occupant-text);
+    border:1px solid var(--occupant-border);
     border-radius:9px;
     padding:3px 3px;
     font-weight:500;
@@ -684,13 +913,13 @@
   }
   .seat .occupant.selected{
     background:var(--amber);
-    color:#3A2603;
+    color:var(--occupant-selected-text);
     box-shadow:0 0 0 2px var(--amber-dark);
   }
   .seat .occupant.pinned{
-    background:#E3E8E5;
-    color:#33413B;
-    border-color:#C4CDC7;
+    background:var(--pinned-bg);
+    color:var(--pinned-text);
+    border-color:var(--pinned-border);
     cursor:default;
   }
 
@@ -733,6 +962,15 @@
     <div class="brand">
       <h1>Sitzplan</h1>
       <span class="sub">Klassenzimmer-Planer</span>
+      <select id="themeSelect" class="plan-title-input" title="Design">
+        <option value="default">Design: Standard</option>
+        <option value="tafelkreide">Design: Tafelkreide</option>
+        <option value="aktenordner">Design: Aktenordner</option>
+        <option value="wandzeitung">Design: Wandzeitung</option>
+        <option value="magnettafel">Design: Magnettafel</option>
+        <option value="overheadfolie">Design: Overheadfolie</option>
+        <option value="spielplan">Design: Spielplan</option>
+      </select>
       <input type="text" id="roomName" class="plan-title-input" placeholder="Raum, z. B. „Musikraum“" maxlength="60" />
       <input type="text" id="className" class="plan-title-input" placeholder="Klasse, z. B. „7b“" maxlength="60" />
     </div>
@@ -894,6 +1132,7 @@
     </div>
     <div class="canvas-toolbar">
       <button class="print-btn" id="sidebarToggleBtn" title="Seitenleiste ein-/ausblenden">☰</button>
+      <button class="print-btn" id="undoBtn" title="Letzte Aktion rückgängig machen (Strg+Z)" disabled>↩ Rückgängig</button>
       <button class="print-btn" id="printBtn" title="Raumplan drucken">🖶 Drucken</button>
       <button class="print-btn" id="multiSelectBtn" title="Mehrere Tische auswählen">☑️ Mehrere auswählen</button>
     </div>
@@ -956,6 +1195,60 @@
   var multiSelected = {};    // tableId -> true, für Mehrfachauswahl/-verschieben (nur UI-Zustand, nicht gespeichert)
   var multiSelectMode = false; // Umschalter für Touch: Tippen wählt aus statt Kopfleiste zu zeigen
 
+  // ---------- Rückgängig (Undo) ----------
+  // Erfasst zentral in scheduleSave() (wird von jeder zustandsverändernden Aktion
+  // aufgerufen) den Zustand direkt VOR der jeweiligen Änderung – kein Eingriff in
+  // die einzelnen Aktionen nötig.
+  var undoStack = [];
+  var UNDO_LIMIT = 30;
+  var lastStateSnapshot = null; // Zustand nach der letzten erfassten Aktion
+  var isRestoringState = false; // true während eines Undo, um keinen Zirkel-Eintrag zu erzeugen
+
+  function captureUndoPoint(){
+    if (isRestoringState) return;
+    var current = JSON.stringify(state);
+    if (lastStateSnapshot !== null && lastStateSnapshot !== current){
+      undoStack.push(lastStateSnapshot);
+      if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+      updateUndoButton();
+    }
+    lastStateSnapshot = current;
+  }
+
+  function updateUndoButton(){
+    var btn = document.getElementById("undoBtn");
+    if (btn) btn.disabled = undoStack.length === 0;
+  }
+
+  function undo(){
+    if (undoStack.length === 0) return;
+    var prevJSON = undoStack.pop();
+    isRestoringState = true;
+    try{
+      state = JSON.parse(prevJSON);
+    }catch(e){
+      isRestoringState = false;
+      return;
+    }
+    lastStateSnapshot = prevJSON;
+    selected = null;
+    multiSelected = {};
+    syncSettingsInputs();
+    render();
+    scheduleSave();
+    isRestoringState = false;
+    updateUndoButton();
+  }
+
+  document.addEventListener("keydown", function(e){
+    var isUndoShortcut = (e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === "z" || e.key === "Z");
+    if (!isUndoShortcut) return;
+    var tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea") return; // natives Text-Undo nicht überschreiben
+    e.preventDefault();
+    undo();
+  });
+
   var pool = document.getElementById("studentPool");
   var canvas = document.getElementById("canvas");
   var rulerTop = document.getElementById("rulerTop");
@@ -975,6 +1268,7 @@
   document.getElementById("sidebarToggleBtn").addEventListener("click", function(){
     sidebarEl.classList.toggle("collapsed");
   });
+  document.getElementById("undoBtn").addEventListener("click", undo);
 
   // ---------- Zoom ----------
   function setZoom(z){
@@ -1152,6 +1446,7 @@
   // ---------- persistence ----------
   var saveTimer = null;
   function scheduleSave(){
+    captureUndoPoint();
     if (saveTimer) clearTimeout(saveTimer);
     saveStatus.textContent = "Speichere …";
     saveTimer = setTimeout(saveState, 400);
@@ -1180,7 +1475,7 @@
   }
 
   function loadState(){
-    if (!storageAdapter.available){ render(); return; }
+    if (!storageAdapter.available){ lastStateSnapshot = JSON.stringify(state); render(); return; }
     saveStatus.textContent = "Lade gespeicherten Plan …";
     storageAdapter.impl.get(STORAGE_KEY, false)
       .then(function(res){
@@ -1220,9 +1515,17 @@
         syncSettingsInputs();
         refreshLayoutList();
         refreshSeatingList();
+        lastStateSnapshot = JSON.stringify(state);
         render();
       })
-      .catch(function(){ saveStatus.textContent = ""; syncSettingsInputs(); refreshLayoutList(); refreshSeatingList(); render(); });
+      .catch(function(){
+        saveStatus.textContent = "";
+        syncSettingsInputs();
+        refreshLayoutList();
+        refreshSeatingList();
+        lastStateSnapshot = JSON.stringify(state);
+        render();
+      });
   }
 
   function syncSettingsInputs(){
@@ -2818,6 +3121,35 @@
     }, true);
   }
 
+  // ---------- Design (Theme) ----------
+  // Reine Anzeige-Einstellung des Browsers/Geräts – nicht Teil von state, wird also
+  // nicht mit Klassen/Räumen gespeichert, exportiert oder mit Kolleg:innen geteilt.
+  var THEME_STORAGE_KEY = "sitzplan-theme";
+  function applyTheme(name){
+    if (!name || name === "default"){
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", name);
+    }
+  }
+  document.getElementById("themeSelect").addEventListener("change", function(e){
+    var val = e.target.value;
+    applyTheme(val);
+    if (storageAdapter.available){
+      storageAdapter.impl.set(THEME_STORAGE_KEY, val, false).catch(function(){});
+    }
+  });
+  function loadTheme(){
+    if (!storageAdapter.available) return;
+    storageAdapter.impl.get(THEME_STORAGE_KEY, false).then(function(res){
+      if (res && res.value){
+        applyTheme(res.value);
+        document.getElementById("themeSelect").value = res.value;
+      }
+    }).catch(function(){});
+  }
+
+  loadTheme();
   loadState();
 })();
 </script>
