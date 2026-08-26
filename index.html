@@ -784,6 +784,24 @@
       </div>
     </section>
 
+    <section class="panel" id="folderArrange">
+      <button class="folder-header" data-folder="folderArrange">
+        <span class="chev">▸</span><span class="folder-name">Standardanordnung</span>
+      </button>
+      <div class="folder-body">
+        <div class="row row-center">
+          <span class="hint grow">Ordnet alle vorhandenen Tische neu an</span>
+          <button class="info-btn" id="arrangeInfoToggle" type="button" title="Hinweise zur Standardanordnung" aria-label="Hinweise zur Standardanordnung">ⓘ</button>
+        </div>
+        <p class="hint info-popover" id="arrangeInfoText" hidden>„Gruppen“: Ein Gruppentisch besteht aus zwei Doppeltischen, die senkrecht nebeneinander stehen (lange Seite an langer Seite, ohne Abstand). Je ein Gruppentisch steht links, einer rechts – jeweils 1 m Abstand zur Seitenwand, beginnend 2,5 m von der Tafelwand, weitere Gruppentische 0,5 m dahinter. „Reihen“: je zwei Tischpaare (links/rechts) waagerecht nebeneinander, 0,1 m von der Seitenwand, erste Reihe 2,5 m von der Tafelwand, weitere Reihen 1 m dahinter. „Winkel“: wie „Gruppen“, aber der jeweils innere Tisch steht waagerecht im 90°-Winkel zum äußeren (wandseitigen) Tisch – die der Tafel zugewandten Kanten beider Tische liegen dabei auf einer Linie.</p>
+        <div class="row add-buttons">
+          <button class="ghost" id="arrangeGroupsBtn">Gruppen</button>
+          <button class="ghost" id="arrangeRowsBtn">Reihen</button>
+          <button class="ghost" id="arrangeAnglesBtn">Winkel</button>
+        </div>
+      </div>
+    </section>
+
     <section class="panel open" id="folderNames">
       <button class="folder-header" data-folder="folderNames">
         <span class="chev">▸</span><span class="folder-name">Namen importieren</span>
@@ -814,7 +832,8 @@
           <button class="ghost grow" id="randomizeBtn">🎲 Namen zufällig verteilen</button>
           <button class="info-btn" id="randomizeInfoToggle" type="button" title="Hinweis zur Zufallsverteilung" aria-label="Hinweis zur Zufallsverteilung">ⓘ</button>
         </div>
-        <p class="hint info-popover" id="randomizeInfoText" hidden>Verteilt alle Namen zufällig auf die vorhandenen Plätze – auch bereits zugewiesene werden dabei neu gemischt.</p>
+        <button class="ghost full" id="randomizeSelectedBtn">🎲 Nur markierte Tische mischen</button>
+        <p class="hint info-popover" id="randomizeInfoText" hidden>„Namen zufällig verteilen“ mischt alle Namen auf alle vorhandenen Plätze – auch bereits zugewiesene werden dabei neu gemischt. „Nur markierte Tische mischen“ verteilt stattdessen ausschließlich die Namen, die bereits an den aktuell markierten Tischen (siehe „Mehrere auswählen“) sitzen, untereinander neu – der Rest des Raums bleibt unangetastet. In beiden Fällen bleiben fixierte (📌) Namen unverändert.</p>
       </div>
     </section>
 
@@ -1374,6 +1393,7 @@
   }
   bindInfoToggle("csvInfoToggle", "csvInfoText");
   bindInfoToggle("tablesInfoToggle", "tablesInfoText");
+  bindInfoToggle("arrangeInfoToggle", "arrangeInfoText");
   bindInfoToggle("roomInfoToggle", "roomInfoText");
   bindInfoToggle("randomizeInfoToggle", "randomizeInfoText");
   bindInfoToggle("roomsInfoToggle", "roomsInfoText");
@@ -1443,6 +1463,64 @@
       newAssignments[freeSeatKeys[k]] = freeStudentIds[k];
     }
     state.assignments = newAssignments;
+    selected = null;
+    render();
+    scheduleSave();
+  });
+
+  // Mischt nur die Namen, die bereits an den aktuell markierten Tischen sitzen,
+  // untereinander neu (inkl. freier Plätze innerhalb der Auswahl) – der Rest des
+  // Raums bleibt unverändert. Fixierte Namen bleiben auf ihrem Platz.
+  document.getElementById("randomizeSelectedBtn").addEventListener("click", function(){
+    var ids = Object.keys(multiSelected);
+    if (ids.length === 0){
+      window.alert("Bitte zuerst einen oder mehrere Tische markieren (siehe „Mehrere auswählen“).");
+      return;
+    }
+    var selSeatKeys = [];
+    ids.forEach(function(tableId){
+      var t = state.tables.filter(function(tb){ return tb.id === tableId; })[0];
+      if (!t) return;
+      for (var i = 0; i < seatCount(t.type); i++){
+        selSeatKeys.push(tableId + ":" + i);
+      }
+    });
+    if (selSeatKeys.length === 0){
+      window.alert("Die markierten Tische haben keine Plätze.");
+      return;
+    }
+
+    var pinnedAssignments = {};
+    selSeatKeys.forEach(function(sk){
+      var sid = state.assignments[sk];
+      if (sid && state.pinned[sid]) pinnedAssignments[sk] = sid;
+    });
+    var freeSeatKeys = selSeatKeys.filter(function(sk){ return !pinnedAssignments[sk]; });
+    var freeStudentIds = [];
+    freeSeatKeys.forEach(function(sk){
+      var sid = state.assignments[sk];
+      if (sid) freeStudentIds.push(sid);
+    });
+
+    if (freeStudentIds.length === 0){
+      window.alert("An den markierten Tischen sitzen keine (nicht fixierten) Namen zum Verteilen.");
+      return;
+    }
+
+    var pinnedCount = Object.keys(pinnedAssignments).length;
+    var msg = pinnedCount > 0
+      ? "Namen an den markierten Tischen untereinander neu verteilen? Fixierte Namen (📌) bleiben unverändert."
+      : "Namen an den markierten Tischen untereinander neu verteilen?";
+    if (!window.confirm(msg)) return;
+
+    shuffleArray(freeStudentIds);
+    shuffleArray(freeSeatKeys);
+
+    freeSeatKeys.forEach(function(sk){ delete state.assignments[sk]; });
+    var n2 = Math.min(freeStudentIds.length, freeSeatKeys.length);
+    for (var k2 = 0; k2 < n2; k2++){
+      state.assignments[freeSeatKeys[k2]] = freeStudentIds[k2];
+    }
     selected = null;
     render();
     scheduleSave();
@@ -1590,6 +1668,163 @@
   });
   document.getElementById("addSingle").addEventListener("click", function(){ addTable("single"); });
   document.getElementById("addDouble").addEventListener("click", function(){ addTable("double"); });
+
+  // ---------- Standardanordnungen ----------
+  // Ordnet alle vorhandenen Tische (unabhängig von Einzel-/Doppeltisch) neu an;
+  // erzeugt keine neuen Tische und löscht keine – nur Position/Drehung ändern sich,
+  // Platzzuweisungen bleiben erhalten (Sitzplatz-Schlüssel ändern sich nicht).
+  // Ein Gruppentisch besteht aus zwei Doppeltischen, die senkrecht direkt
+  // hintereinander (ohne Abstand) an der Wand stehen. Je ein Gruppentisch links,
+  // einer rechts – 1 m Wandabstand, weitere Gruppentische 0,5 m dahinter.
+  // Ein Gruppentisch besteht aus zwei Doppeltischen, die senkrecht NEBENEINANDER
+  // stehen (lange Seite an langer Seite, ohne Abstand). Je ein Gruppentisch links,
+  // einer rechts – 1 m Wandabstand, weitere Gruppentische 0,5 m dahinter.
+  function arrangeGroups(){
+    var count = state.tables.length;
+    if (count === 0){ window.alert("Es sind keine Tische vorhanden."); return; }
+    if (!window.confirm("Alle " + count + " Tische zu Gruppentischen (je 2 Tische links/rechts) neu anordnen?")) return;
+    var wallMargin = 1.0, firstGap = 2.5, rowGap = 0.5;
+    var nearEdgeY = state.roomHM - firstGap;
+    var idx = 0;
+    while (idx < count){
+      var leftPair = state.tables.slice(idx, idx + 2);
+      var rightPair = state.tables.slice(idx + 2, idx + 4);
+      leftPair.concat(rightPair).forEach(function(t){ t.rotation = 90; });
+
+      var leftFms = leftPair.map(function(t){ return tableFootprintM(t); });
+      var rightFms = rightPair.map(function(t){ return tableFootprintM(t); });
+      var leftClusterHeight = 0;
+      leftFms.forEach(function(fm){ leftClusterHeight = Math.max(leftClusterHeight, fm.heightM); });
+      var rightClusterHeight = 0;
+      rightFms.forEach(function(fm){ rightClusterHeight = Math.max(rightClusterHeight, fm.heightM); });
+      var leftFarEdgeY = nearEdgeY - leftClusterHeight;
+      var rightFarEdgeY = nearEdgeY - rightClusterHeight;
+
+      // Linker Gruppentisch: von der Wand ausgehend nebeneinander aufbauen.
+      var cursorX = wallMargin;
+      leftPair.forEach(function(t, i){
+        var fm = leftFms[i];
+        t.xM = snapM(cursorX);
+        t.yM = snapM(leftFarEdgeY + (leftClusterHeight - fm.heightM));
+        cursorX += fm.widthM;
+      });
+      // Rechter Gruppentisch: von der rechten Wand ausgehend rückwärts aufbauen.
+      var cursorXR = state.roomWM - wallMargin;
+      for (var i = rightPair.length - 1; i >= 0; i--){
+        var fmR = rightFms[i];
+        cursorXR -= fmR.widthM;
+        rightPair[i].xM = snapM(cursorXR);
+        rightPair[i].yM = snapM(rightFarEdgeY + (rightClusterHeight - fmR.heightM));
+      }
+
+      nearEdgeY = Math.min(leftFarEdgeY, rightFarEdgeY) - rowGap;
+      idx += 4;
+    }
+    clampAllTables();
+    render();
+    scheduleSave();
+  }
+
+  function arrangeRows(){
+    var count = state.tables.length;
+    if (count === 0){ window.alert("Es sind keine Tische vorhanden."); return; }
+    if (!window.confirm("Alle " + count + " Tische als Reihen (je zwei Tischpaare links/rechts) neu anordnen?")) return;
+    var wallMargin = 0.1, firstGap = 2.5, rowGap = 1.0;
+    var nearEdgeY = state.roomHM - firstGap;
+    var idx = 0;
+    while (idx < count){
+      var group = state.tables.slice(idx, idx + 4);
+      group.forEach(function(t){ t.rotation = 0; });
+      var fms = group.map(function(t){ return tableFootprintM(t); });
+      var rowHeight = 0;
+      fms.forEach(function(fm){ rowHeight = Math.max(rowHeight, fm.heightM); });
+      var farEdgeY = nearEdgeY - rowHeight;
+
+      var cursorX = wallMargin;
+      [0, 1].forEach(function(li){
+        if (!group[li]) return;
+        group[li].xM = snapM(cursorX);
+        group[li].yM = snapM(farEdgeY + (rowHeight - fms[li].heightM));
+        cursorX += fms[li].widthM;
+      });
+      var cursorXR = state.roomWM - wallMargin;
+      [3, 2].forEach(function(ri){
+        if (!group[ri]) return;
+        cursorXR -= fms[ri].widthM;
+        group[ri].xM = snapM(cursorXR);
+        group[ri].yM = snapM(farEdgeY + (rowHeight - fms[ri].heightM));
+      });
+
+      nearEdgeY = farEdgeY - rowGap;
+      idx += 4;
+    }
+    clampAllTables();
+    render();
+    scheduleSave();
+  }
+
+  // Wie "Gruppen", aber der innere Tisch jedes Gruppentisches steht waagerecht im
+  // 90°-Winkel zum äußeren (wandseitigen) Tisch. Die der Tafel zugewandten Kanten
+  // beider Tische liegen dabei auf einer Linie – der innere Tisch ist entsprechend
+  // "flacher" (steht nicht so weit von der Tafel weg wie der äußere).
+  function arrangeAngles(){
+    var count = state.tables.length;
+    if (count === 0){ window.alert("Es sind keine Tische vorhanden."); return; }
+    if (!window.confirm("Alle " + count + " Tische als Winkel-Gruppentische neu anordnen?")) return;
+    var wallMargin = 1.0, firstGap = 2.5, rowGap = 0.5;
+    var nearEdgeY = state.roomHM - firstGap;
+    var idx = 0;
+    while (idx < count){
+      var leftPair = state.tables.slice(idx, idx + 2);
+      var rightPair = state.tables.slice(idx + 2, idx + 4);
+      var leftOuter = leftPair[0], leftInner = leftPair[1];
+      var rightOuter = rightPair[0], rightInner = rightPair[1];
+
+      if (leftOuter) leftOuter.rotation = 90;
+      if (rightOuter) rightOuter.rotation = 90;
+      var leftOuterFm = leftOuter ? tableFootprintM(leftOuter) : null;
+      var rightOuterFm = rightOuter ? tableFootprintM(rightOuter) : null;
+      var clusterHeight = Math.max(leftOuterFm ? leftOuterFm.heightM : 0, rightOuterFm ? rightOuterFm.heightM : 0);
+      var farEdgeY = nearEdgeY - clusterHeight;
+
+      var leftExtentY = farEdgeY;
+      if (leftOuter){
+        leftOuter.xM = snapM(wallMargin);
+        leftOuter.yM = snapM(farEdgeY + (clusterHeight - leftOuterFm.heightM));
+        if (leftInner){
+          leftInner.rotation = 0;
+          var fmLI = tableFootprintM(leftInner);
+          var leftOuterNearY = leftOuter.yM + leftOuterFm.heightM; // Tafel-zugewandte Kante (außen)
+          leftInner.xM = snapM(leftOuter.xM + leftOuterFm.widthM);
+          leftInner.yM = snapM(leftOuterNearY - fmLI.heightM); // gleiche Tafel-zugewandte Kante (innen)
+          leftExtentY = Math.min(leftExtentY, leftInner.yM);
+        }
+      }
+      var rightExtentY = farEdgeY;
+      if (rightOuter){
+        rightOuter.xM = snapM(state.roomWM - wallMargin - rightOuterFm.widthM);
+        rightOuter.yM = snapM(farEdgeY + (clusterHeight - rightOuterFm.heightM));
+        if (rightInner){
+          rightInner.rotation = 0;
+          var fmRI = tableFootprintM(rightInner);
+          var rightOuterNearY = rightOuter.yM + rightOuterFm.heightM;
+          rightInner.xM = snapM(rightOuter.xM - fmRI.widthM);
+          rightInner.yM = snapM(rightOuterNearY - fmRI.heightM);
+          rightExtentY = Math.min(rightExtentY, rightInner.yM);
+        }
+      }
+
+      nearEdgeY = Math.min(leftExtentY, rightExtentY) - rowGap;
+      idx += 4;
+    }
+    clampAllTables();
+    render();
+    scheduleSave();
+  }
+
+  document.getElementById("arrangeGroupsBtn").addEventListener("click", arrangeGroups);
+  document.getElementById("arrangeRowsBtn").addEventListener("click", arrangeRows);
+  document.getElementById("arrangeAnglesBtn").addEventListener("click", arrangeAngles);
 
   // ---------- room & table dimension settings ----------
   function clampNum(v, min, max, fallback){
