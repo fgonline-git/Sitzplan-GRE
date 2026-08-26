@@ -461,6 +461,19 @@
     min-width:40px;
     color:var(--ink-dim);
   }
+  .print-header{ display:none; }
+  .print-header-title{
+    font-family:var(--font-display);
+    font-size:19px;
+    font-weight:700;
+    color:#000;
+  }
+  .print-header-meta{
+    font-family:var(--font-mono);
+    font-size:10px;
+    color:#333;
+    margin-top:2px;
+  }
   .canvas-toolbar{
     position:absolute;
     top:12px;
@@ -697,7 +710,8 @@
     .app{ height:auto; display:block; }
     .canvas-wrap{ height:auto; overflow:visible; }
     .canvas-scroll{ overflow:visible; height:auto; }
-    .plan-grid{ width:auto !important; }
+    .plan-grid{ width:auto !important; grid-template-columns:0 max-content !important; grid-template-rows:0 max-content !important; }
+    .ruler-corner, .ruler-top, .ruler-left{ display:none !important; }
     .table{ box-shadow:none; page-break-inside:avoid; break-inside:avoid; }
     .table-header{ display:none !important; }
     .board{ border-top:2px solid #000; }
@@ -708,6 +722,7 @@
       color:#000 !important;
       padding:1px 2px !important;
     }
+    .print-header{ display:block !important; }
   }
 </style>
 </head>
@@ -718,7 +733,8 @@
     <div class="brand">
       <h1>Sitzplan</h1>
       <span class="sub">Klassenzimmer-Planer</span>
-      <input type="text" id="planTitle" class="plan-title-input" placeholder="Titel dieses Plans, z. B. „Klasse 7b“" maxlength="60" />
+      <input type="text" id="roomName" class="plan-title-input" placeholder="Raum, z. B. „Musikraum“" maxlength="60" />
+      <input type="text" id="className" class="plan-title-input" placeholder="Klasse, z. B. „7b“" maxlength="60" />
     </div>
 
     <section class="panel open" id="folderRoom">
@@ -726,13 +742,18 @@
         <span class="chev">▸</span><span class="folder-name">Raum &amp; Maße</span>
       </button>
       <div class="folder-body">
-        <p class="hint">Raumgröße (Breite × Tiefe)</p>
+        <div class="row row-center">
+          <span class="hint grow">Raum, Tisch &amp; Raster</span>
+          <button class="info-btn" id="roomInfoToggle" type="button" title="Hinweise zu Raum &amp; Maßen" aria-label="Hinweise zu Raum &amp; Maßen">ⓘ</button>
+        </div>
+        <p class="hint info-popover" id="roomInfoText" hidden>Raumgröße = Breite × Tiefe des Zimmers. Tischgröße gilt für einen Doppeltisch (Breite × Tiefe) – ein Einzeltisch ist halb so breit. Raster: Rastermaß für Ausrichtung und Verschieben der Tische (0,1–1 m).</p>
+        <p class="hint">Raum</p>
         <div class="dims-row">
           <div class="dim-field"><input type="number" id="roomWidth" min="2" max="40" step="0.1" value="8" /><span>m</span></div>
           <span class="dims-x">×</span>
           <div class="dim-field"><input type="number" id="roomHeight" min="2" max="40" step="0.1" value="10" /><span>m</span></div>
         </div>
-        <p class="hint">Tischgröße eines Doppeltisches (Breite × Tiefe) – ein Einzeltisch ist halb so breit</p>
+        <p class="hint">Tisch</p>
         <div class="dims-row">
           <div class="dim-field"><input type="number" id="tableWidthM" min="0.3" max="4" step="0.1" value="1.4" /><span>m</span></div>
           <span class="dims-x">×</span>
@@ -750,15 +771,16 @@
         <span class="chev">▸</span><span class="folder-name">Tische</span>
       </button>
       <div class="folder-body">
-        <div class="row">
+        <div class="row row-center">
           <input type="number" id="tableCount" min="1" max="32" value="12" />
-          <button id="createTables">Hinzufügen</button>
+          <button class="grow" id="createTables">Hinzufügen</button>
+          <button class="info-btn" id="tablesInfoToggle" type="button" title="Hinweise zu Tischen" aria-label="Hinweise zu Tischen">ⓘ</button>
         </div>
         <div class="row add-buttons">
           <button class="ghost" id="addSingle">+ Einzeltisch</button>
           <button class="ghost" id="addDouble">+ Doppeltisch</button>
         </div>
-        <p class="hint">Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Doppelklick dreht ihn um 90°. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben. Insgesamt maximal 32 Tische.</p>
+        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Doppelklick dreht ihn um 90°. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben. Insgesamt maximal 32 Tische.</p>
       </div>
     </section>
 
@@ -773,7 +795,7 @@
         </div>
         <input type="file" id="csvInput" accept=".csv,text/csv" hidden />
         <label class="checkbox"><input type="checkbox" id="skipHeader" checked /> Erste Zeile ist Überschrift</label>
-        <p class="hint info-popover" id="csvInfoText" hidden>Ein Name pro Zeile – oder „Nachname,Vorname“. Wird beim Import auf „Vorname N.“ gekürzt.</p>
+        <p class="hint info-popover" id="csvInfoText" hidden>Ein Name pro Zeile – oder „Nachname,Vorname“. Wird beim Import auf „Vorname N.“ gekürzt. Beginnt die Datei mit einer Spalte „Gruppe“, wird diese ignoriert und Nachname/Vorname aus Spalte 2 und 3 übernommen. Ein Import ersetzt die komplette bisherige Namensliste (inkl. Platzzuweisungen und Fixierungen).</p>
         <div class="row">
           <input type="text" id="newNameInput" placeholder="Name, Vorname" maxlength="60" />
           <button class="icon-btn-add" id="addNameBtn" title="Name hinzufügen" aria-label="Name hinzufügen">+</button>
@@ -788,8 +810,11 @@
         <span class="chev">▸</span><span class="folder-name">Zufallsverteilung</span>
       </button>
       <div class="folder-body">
-        <button class="ghost full" id="randomizeBtn">🎲 Namen zufällig verteilen</button>
-        <p class="hint">Verteilt alle Namen zufällig auf die vorhandenen Plätze – auch bereits zugewiesene werden dabei neu gemischt.</p>
+        <div class="row row-center">
+          <button class="ghost grow" id="randomizeBtn">🎲 Namen zufällig verteilen</button>
+          <button class="info-btn" id="randomizeInfoToggle" type="button" title="Hinweis zur Zufallsverteilung" aria-label="Hinweis zur Zufallsverteilung">ⓘ</button>
+        </div>
+        <p class="hint info-popover" id="randomizeInfoText" hidden>Verteilt alle Namen zufällig auf die vorhandenen Plätze – auch bereits zugewiesene werden dabei neu gemischt.</p>
       </div>
     </section>
 
@@ -798,14 +823,17 @@
         <span class="chev">▸</span><span class="folder-name">Räume</span>
       </button>
       <div class="folder-body">
-        <button class="ghost full" id="saveLayoutBtn">+ Aktuellen Raum speichern …</button>
+        <div class="row row-center">
+          <button class="ghost grow" id="saveLayoutBtn">+ Aktuellen Raum speichern …</button>
+          <button class="info-btn" id="roomsInfoToggle" type="button" title="Hinweis zu Räumen" aria-label="Hinweis zu Räumen">ⓘ</button>
+        </div>
+        <p class="hint info-popover" id="roomsInfoText" hidden>Enthält Raumgröße, Tischmaße und -anordnung (keine Namen). Laden ersetzt die aktuelle Tischanordnung, zugewiesene Namen wandern zurück in die Namensliste. Export/Import als .json-Datei zum Weitergeben an Kolleg:innen.</p>
         <div class="folder-list" id="layoutFolderList"></div>
         <div class="row">
           <button class="ghost" id="exportLayoutBtn">⬇ Exportieren</button>
           <button class="ghost" id="importLayoutBtn">⬆ Importieren</button>
         </div>
         <input type="file" id="importLayoutFile" accept=".json,application/json" hidden />
-        <p class="hint">Enthält Raumgröße, Tischmaße und -anordnung. Export/Import als .json-Datei zum Weitergeben an Kolleg:innen.</p>
       </div>
     </section>
 
@@ -814,14 +842,17 @@
         <span class="chev">▸</span><span class="folder-name">Klassen</span>
       </button>
       <div class="folder-body">
-        <button class="ghost full" id="saveSeatingBtn">+ Aktuelle Klasse speichern …</button>
+        <div class="row row-center">
+          <button class="ghost grow" id="saveSeatingBtn">+ Aktuelle Klasse speichern …</button>
+          <button class="info-btn" id="classesInfoToggle" type="button" title="Hinweis zu Klassen" aria-label="Hinweis zu Klassen">ⓘ</button>
+        </div>
+        <p class="hint info-popover" id="classesInfoText" hidden>Enthält Namen, Platzzuweisungen und Fixierungen sowie die zugehörige Tischanordnung und Raum-/Tischmaße. Laden ersetzt aktuelle Namen und Tische vollständig. Export/Import als .json-Datei zum Weitergeben an Kolleg:innen.</p>
         <div class="folder-list" id="seatingFolderList"></div>
         <div class="row">
           <button class="ghost" id="exportSeatingBtn">⬇ Exportieren</button>
           <button class="ghost" id="importSeatingBtn">⬆ Importieren</button>
         </div>
         <input type="file" id="importSeatingFile" accept=".json,application/json" hidden />
-        <p class="hint">Enthält Namen und Platzzuweisungen dieser Klasse. Export/Import als .json-Datei zum Weitergeben an Kolleg:innen.</p>
       </div>
     </section>
 
@@ -838,6 +869,10 @@
   </aside>
 
   <main class="canvas-wrap">
+    <div class="print-header" id="printHeader">
+      <div class="print-header-title" id="printHeaderTitle"></div>
+      <div class="print-header-meta" id="printHeaderMeta"></div>
+    </div>
     <div class="canvas-toolbar">
       <button class="print-btn" id="sidebarToggleBtn" title="Seitenleiste ein-/ausblenden">☰</button>
       <button class="print-btn" id="printBtn" title="Raumplan drucken">🖶 Drucken</button>
@@ -883,7 +918,8 @@
   }
 
   var state = {
-    title: "",             // frei wählbarer Titel dieses Plans (z. B. Klassenname)
+    roomName: "",           // frei wählbarer Raumname
+    className: "",          // frei wählbarer Klassenname
     roomWM: 8,           // Raumbreite in m
     roomHM: 10,           // Raumtiefe in m
     tableWM: 1.4,         // Tischbreite in m
@@ -946,7 +982,15 @@
       zoomBeforePrint = null;
     }
   });
+  function updatePrintHeader(){
+    var parts = [state.className, state.roomName].map(function(p){ return (p || "").trim(); }).filter(function(p){ return p; });
+    document.getElementById("printHeaderTitle").textContent = parts.length ? parts.join(" – ") : "Sitzplan";
+    var now = new Date();
+    document.getElementById("printHeaderMeta").textContent =
+      now.toLocaleDateString("de-DE") + ", " + now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr";
+  }
   document.getElementById("printBtn").addEventListener("click", function(){
+    updatePrintHeader();
     zoomBeforePrint = zoom;
     setZoom(1);
     setTimeout(function(){ window.print(); }, 60);
@@ -1132,7 +1176,11 @@
               if (typeof parsed.tableWM !== "number") parsed.tableWM = 1.4;
               if (typeof parsed.tableDM !== "number") parsed.tableDM = 0.7;
               if (!parsed.pinned || typeof parsed.pinned !== "object") parsed.pinned = {};
-              if (typeof parsed.title !== "string") parsed.title = "";
+              // Altes einzelnes Titelfeld wurde als Klassenname beworben -> dorthin migrieren.
+              if (typeof parsed.className !== "string"){
+                parsed.className = typeof parsed.title === "string" ? parsed.title : "";
+              }
+              if (typeof parsed.roomName !== "string") parsed.roomName = "";
               if (typeof parsed.gridM !== "number") parsed.gridM = DEFAULT_GRID_M;
               state = parsed;
               if (legacy){
@@ -1159,7 +1207,8 @@
   }
 
   function syncSettingsInputs(){
-    document.getElementById("planTitle").value = state.title || "";
+    document.getElementById("roomName").value = state.roomName || "";
+    document.getElementById("className").value = state.className || "";
     document.getElementById("roomWidth").value = state.roomWM;
     document.getElementById("roomHeight").value = state.roomHM;
     document.getElementById("tableWidthM").value = state.tableWM;
@@ -1178,10 +1227,17 @@
     return vorname + " " + nachname.charAt(0).toUpperCase() + ".";
   }
 
-  function parseNameLine(line){
-    var parts = line.split(/[,;\t]/).map(function(p){
+  // Zerlegt eine CSV-Zeile in ihre rohen Zellen (getrimmt, Anführungszeichen entfernt),
+  // OHNE leere Zellen zu entfernen – wichtig, um Spalten anhand ihrer Position
+  // (z. B. bei einer führenden „Gruppe“-Spalte) zuverlässig zu erkennen.
+  function splitCsvCells(line){
+    return line.split(/[,;\t]/).map(function(p){
       return p.trim().replace(/^"(.*)"$/, "$1").trim();
-    }).filter(function(p){ return p.length > 0; });
+    });
+  }
+
+  function parseNameLine(line){
+    var parts = splitCsvCells(line).filter(function(p){ return p.length > 0; });
     if (parts.length === 0) return null;
     if (parts.length >= 2){
       // Spaltenformat: Nachname,Vorname
@@ -1193,14 +1249,47 @@
 
   function parseCsv(text){
     var lines = text.split(/\r\n|\n|\r/).map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+    if (lines.length === 0) return [];
+
+    // Erste Spalte der ersten Zeile prüfen: heißt sie "Gruppe", wird diese Spalte
+    // ignoriert und Nachname/Vorname aus Spalte 2 und 3 übernommen.
+    var firstCells = splitCsvCells(lines[0]);
+    var hasGroupColumn = !!firstCells[0] && firstCells[0].toLowerCase() === "gruppe";
+
     var skip = document.getElementById("skipHeader").checked;
-    if (skip) lines = lines.slice(1);
+    var dataLines = (hasGroupColumn || skip) ? lines.slice(1) : lines;
+
     var names = [];
-    lines.forEach(function(line){
-      var name = parseNameLine(line);
+    dataLines.forEach(function(line){
+      var name;
+      if (hasGroupColumn){
+        var cells = splitCsvCells(line);
+        name = shortenName(cells[2] || "", cells[1] || "");
+      } else {
+        name = parseNameLine(line);
+      }
       if (name) names.push(name);
     });
     return names;
+  }
+
+  // Ersetzt die komplette Namensliste (inkl. Platzzuweisungen/Fixierungen) durch die
+  // neu importierten Namen, statt sie zu ergänzen.
+  function importParsedNames(names){
+    if (state.students.length > 0){
+      var ok = window.confirm("Vor dem Import alle vorhandenen Namen (inkl. Platzzuweisungen und Fixierungen) löschen und durch " + names.length + " importierte Namen ersetzen?");
+      if (!ok) return;
+    }
+    state.students = [];
+    state.assignments = {};
+    state.pinned = {};
+    state.nextStudentId = 1;
+    names.forEach(function(n){
+      state.students.push({ id: "s" + (state.nextStudentId++), name: n });
+    });
+    selected = null;
+    render();
+    scheduleSave();
   }
 
   document.getElementById("csvInput").addEventListener("change", function(e){
@@ -1208,12 +1297,7 @@
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function(evt){
-      var names = parseCsv(String(evt.target.result));
-      names.forEach(function(n){
-        state.students.push({ id: "s" + (state.nextStudentId++), name: n });
-      });
-      render();
-      scheduleSave();
+      importParsedNames(parseCsv(String(evt.target.result)));
     };
     reader.readAsText(file, "UTF-8");
     e.target.value = "";
@@ -1232,12 +1316,7 @@
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function(evt){
-      var names = parseCsv(String(evt.target.result));
-      names.forEach(function(n){
-        state.students.push({ id: "s" + (state.nextStudentId++), name: n });
-      });
-      render();
-      scheduleSave();
+      importParsedNames(parseCsv(String(evt.target.result)));
     };
     reader.readAsText(file, "UTF-8");
   });
@@ -1286,10 +1365,19 @@
     }
   });
 
-  document.getElementById("csvInfoToggle").addEventListener("click", function(){
-    var el = document.getElementById("csvInfoText");
-    el.hidden = !el.hidden;
-  });
+  function bindInfoToggle(btnId, textId){
+    var btn = document.getElementById(btnId);
+    var text = document.getElementById(textId);
+    if (btn && text){
+      btn.addEventListener("click", function(){ text.hidden = !text.hidden; });
+    }
+  }
+  bindInfoToggle("csvInfoToggle", "csvInfoText");
+  bindInfoToggle("tablesInfoToggle", "tablesInfoText");
+  bindInfoToggle("roomInfoToggle", "roomInfoText");
+  bindInfoToggle("randomizeInfoToggle", "randomizeInfoText");
+  bindInfoToggle("roomsInfoToggle", "roomsInfoText");
+  bindInfoToggle("classesInfoToggle", "classesInfoText");
 
   // ---------- Zufallsverteilung ----------
   function shuffleArray(arr){
@@ -1546,15 +1634,19 @@
   document.getElementById("tableWidthM").addEventListener("change", applyTableSettings);
   document.getElementById("tableDepthM").addEventListener("change", applyTableSettings);
   document.getElementById("gridM").addEventListener("change", applyGridSettings);
-  document.getElementById("planTitle").addEventListener("input", function(e){
-    state.title = e.target.value;
+  document.getElementById("roomName").addEventListener("input", function(e){
+    state.roomName = e.target.value;
+    scheduleSave();
+  });
+  document.getElementById("className").addEventListener("input", function(e){
+    state.className = e.target.value;
     scheduleSave();
   });
 
   document.getElementById("resetAll").addEventListener("click", function(){
     var ok = window.confirm("Wirklich alles zurücksetzen? Namen, Tische und Zuweisungen gehen verloren.");
     if (!ok) return;
-    state = { title: "", roomWM: 8, roomHM: 10, tableWM: 1.4, tableDM: 0.7, gridM: DEFAULT_GRID_M, students: [], tables: [], assignments: {}, pinned: {}, nextStudentId: 1, nextTableId: 1 };
+    state = { roomName: "", className: "", roomWM: 8, roomHM: 10, tableWM: 1.4, tableDM: 0.7, gridM: DEFAULT_GRID_M, students: [], tables: [], assignments: {}, pinned: {}, nextStudentId: 1, nextTableId: 1 };
     selected = null;
     syncSettingsInputs();
     render();
@@ -1565,14 +1657,25 @@
   var LAYOUTS_INDEX_KEY = "layouts-index";
   var SEATINGS_INDEX_KEY = "seatings-index";
 
-  // Vorschlag für den Namen beim Speichern/Exportieren: Titel (falls gesetzt) +
-  // Datum + Uhrzeit.
-  function defaultSaveName(){
+  // Vorschlag für den Namen beim Speichern/Exportieren eines Raums: Raumname
+  // (falls gesetzt) + Datum + Uhrzeit.
+  function defaultRoomSaveName(){
     var now = new Date();
     var dateStr = now.toLocaleDateString("de-DE");
     var timeStr = now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-    var title = (state.title || "").trim();
-    return (title ? title + " – " : "") + dateStr + " " + timeStr;
+    var name = (state.roomName || "").trim();
+    return (name ? name + " – " : "") + dateStr + " " + timeStr;
+  }
+  // Vorschlag für den Namen beim Speichern/Exportieren einer Klasse: Klassenname
+  // + Raumname (falls beide gesetzt) + Datum + Uhrzeit.
+  function defaultClassSaveName(){
+    var now = new Date();
+    var dateStr = now.toLocaleDateString("de-DE");
+    var timeStr = now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+    var cls = (state.className || "").trim();
+    var room = (state.roomName || "").trim();
+    var prefix = [cls, room].filter(function(p){ return p; }).join(" – ");
+    return (prefix ? prefix + " – " : "") + dateStr + " " + timeStr;
   }
 
   function genId(prefix){
@@ -1653,7 +1756,7 @@
   }
   function saveLayout(){
     if (!storageAdapter.available){ window.alert("Speichern ist in diesem Browser nicht verfügbar (lokaler Speicher blockiert)."); return; }
-    var name = window.prompt("Name für diesen Raum mit Tischanordnung:", defaultSaveName());
+    var name = window.prompt("Name für diesen Raum mit Tischanordnung:", defaultRoomSaveName());
     if (!name) return;
     var id = genId("L");
     var data = {
@@ -1717,7 +1820,7 @@
   }
   function saveSeating(){
     if (!storageAdapter.available){ window.alert("Speichern ist in diesem Browser nicht verfügbar (lokaler Speicher blockiert)."); return; }
-    var name = window.prompt("Name für diese Klasse:", defaultSaveName());
+    var name = window.prompt("Name für diese Klasse:", defaultClassSaveName());
     if (!name) return;
     var id = genId("S");
     var data = {
@@ -1839,7 +1942,7 @@
   }
 
   function exportLayout(){
-    var name = window.prompt("Name für den Export dieses Raums:", defaultSaveName());
+    var name = window.prompt("Name für den Export dieses Raums:", defaultRoomSaveName());
     if (!name) return;
     var data = {
       kind: "sitzplan-raum",
@@ -1855,7 +1958,7 @@
     downloadJson(data, slugifyFilename(name) + ".json");
   }
   function exportSeating(){
-    var name = window.prompt("Name für den Export dieser Klasse:", defaultSaveName());
+    var name = window.prompt("Name für den Export dieser Klasse:", defaultClassSaveName());
     if (!name) return;
     var data = {
       kind: "sitzplan-sitzordnung",
