@@ -820,11 +820,80 @@
     cursor:grabbing;
   }
   .table.multi-selected{
+    background:var(--teal-tint);
     box-shadow:0 0 0 2.5px var(--teal), 0 4px 10px rgba(20,40,35,0.18);
   }
   .table.multi-selected.dragging{
     box-shadow:0 0 0 2.5px var(--teal), 0 8px 18px rgba(20,40,35,0.22);
   }
+  .table.header-active{
+    background:var(--teal-tint);
+  }
+  /* Fünfeck-Tische: der äußere .table-Knoten trägt nur noch die freie Drehung
+     (CSS-Transform) und den Anfasser – Hintergrund/Rahmen/Schatten wandern auf den
+     inneren, zugeschnittenen .table-shape-Wrapper, damit sie mit der fünfeckigen
+     Form mit-geschnitten werden. */
+  .table.pentagon-table{
+    background:none;
+    border:none;
+    box-shadow:none;
+  }
+  .table.pentagon-table.dragging{ box-shadow:none; }
+  .table-shape{
+    position:absolute;
+    inset:0;
+    background:var(--panel);
+    border:1.5px solid var(--teal-dark);
+    border-radius:3px;
+    box-shadow:0 1px 2px rgba(20,40,35,0.08);
+  }
+  .table.pentagon-table.dragging .table-shape{
+    box-shadow:0 8px 18px rgba(20,40,35,0.22);
+  }
+  .table.pentagon-table.multi-selected .table-shape{
+    background:var(--teal-tint);
+    box-shadow:0 0 0 2.5px var(--teal), 0 4px 10px rgba(20,40,35,0.18);
+  }
+  .table.pentagon-table.multi-selected.dragging .table-shape{
+    box-shadow:0 0 0 2.5px var(--teal), 0 8px 18px rgba(20,40,35,0.22);
+  }
+  .table.pentagon-table.header-active .table-shape{
+    background:var(--teal-tint);
+  }
+  .rotate-handle-stem{
+    position:absolute;
+    left:50%;
+    top:-18px;
+    width:1.5px;
+    height:18px;
+    background:var(--teal-dark);
+    opacity:0;
+    pointer-events:none;
+    transform:translateX(-50%);
+  }
+  .rotate-handle{
+    position:absolute;
+    left:50%;
+    top:-24px;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:var(--teal);
+    border:2px solid var(--panel);
+    box-shadow:0 1px 3px rgba(20,40,35,0.3);
+    transform:translateX(-50%);
+    cursor:grab;
+    opacity:0;
+    pointer-events:none;
+    touch-action:none;
+    z-index:6;
+  }
+  .table.header-active .rotate-handle,
+  .table.header-active .rotate-handle-stem{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .rotate-handle:active{ cursor:grabbing; }
   .table-header{
     position:absolute;
     top:0; left:0; right:0;
@@ -933,9 +1002,75 @@
   }
 
   /* ---------- Druckansicht: nur der Raumplan, in echter Größe ---------- */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(10,20,17,0.45);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:200;
+    padding:16px;
+  }
+  .modal-overlay[hidden]{ display:none; }
+  .modal{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:12px;
+    padding:18px 20px;
+    width:100%;
+    max-width:340px;
+    box-shadow:0 12px 32px rgba(10,20,17,0.28);
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .modal h3{
+    margin:0;
+    font-family:var(--font-display);
+    font-size:17px;
+    color:var(--ink);
+  }
+  .modal-field{ display:flex; flex-direction:column; gap:5px; }
+  .modal-field[hidden]{ display:none; }
+  .modal-field label{
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+  }
+  .modal-field select{
+    padding:8px 9px;
+    border:1px solid var(--panel-border);
+    border-radius:7px;
+    font-family:var(--font-body);
+    font-size:13px;
+    color:var(--ink);
+    background:var(--panel);
+  }
+  .modal-actions{
+    display:flex;
+    gap:8px;
+    justify-content:flex-end;
+    margin-top:4px;
+  }
+  .btn-primary{
+    background:var(--teal);
+    color:#fff;
+    border:none;
+    border-radius:7px;
+    padding:9px 16px;
+    font-family:var(--font-body);
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .btn-primary:hover{ background:var(--teal-dark); }
   @media print{
     body{ background:#fff; }
-    .sidebar, .zoom-controls, .canvas-toolbar{ display:none !important; }
+    .sidebar, .zoom-controls, .canvas-toolbar, .modal-overlay{ display:none !important; }
     .app{ height:auto; display:block; }
     .canvas-wrap{ height:auto; overflow:visible; }
     .canvas-scroll{ overflow:visible; height:auto; }
@@ -1017,8 +1152,9 @@
         <div class="row add-buttons">
           <button class="ghost" id="addSingle">+ Einzeltisch</button>
           <button class="ghost" id="addDouble">+ Doppeltisch</button>
+          <button class="ghost" id="addPentagon">+ Fünfeckiger Tisch</button>
         </div>
-        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Doppelklick dreht ihn um 90°. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben. Insgesamt maximal 32 Tische.</p>
+        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen, dabei erscheint auch ein kleiner Anfasser oberhalb des Tisches – ihn im Kreis ziehen dreht den Tisch (rechteckige Tische im 90°-, der fünfeckige Tisch im 30°-Raster). Doppelklick öffnet ein Konfigurationsmenü für Winkel und (bei rechteckigen Tischen) individuelle Größe. Ausgewählte Tische lassen sich zusätzlich mit den Pfeiltasten rasterweise verschieben und mit Q/R drehen. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben und über „⧉ Duplizieren“ als neue, leere Tische (ohne bereits zugewiesene Namen) kopieren. Der fünfeckige Tisch hat feste Maße (Rechteck 67,5 × 62,5 cm, an einer Ecke so abgeschnitten, dass 24 cm von der langen und 37 cm von der kurzen Seite übrig bleiben) und einen Sitzplatz; beim Ziehen rastet er bevorzugt Kante an Kante an einem anderen Fünfeck-Tisch ein, erst wenn keine Kante nah genug ist, gilt wieder das normale Raster. Insgesamt maximal 32 Tische.</p>
       </div>
     </section>
 
@@ -1135,6 +1271,7 @@
       <button class="print-btn" id="undoBtn" title="Letzte Aktion rückgängig machen (Strg+Z)" disabled>↩ Rückgängig</button>
       <button class="print-btn" id="printBtn" title="Raumplan drucken">🖶 Drucken</button>
       <button class="print-btn" id="multiSelectBtn" title="Mehrere Tische auswählen">☑️ Mehrere auswählen</button>
+      <button class="print-btn" id="duplicateBtn" title="Markierte Tische duplizieren">⧉ Duplizieren</button>
     </div>
     <div class="zoom-controls">
       <button id="zoomOut" title="Verkleinern">−</button>
@@ -1151,6 +1288,29 @@
     </div>
     <div class="board">Tafel</div>
   </main>
+</div>
+
+<div class="modal-overlay" id="tableConfigOverlay" hidden>
+  <div class="modal">
+    <h3 id="tableConfigTitle">Tisch konfigurieren</h3>
+    <div class="modal-field">
+      <label for="tableConfigAngle">Winkel</label>
+      <select id="tableConfigAngle"></select>
+    </div>
+    <div class="modal-field" id="tableConfigSizeField">
+      <label>Größe (Breite × Tiefe)</label>
+      <div class="dims-row">
+        <div class="dim-field"><input type="number" id="tableConfigWidth" min="20" max="400" step="1" /><span>cm</span></div>
+        <span class="dims-x">×</span>
+        <div class="dim-field"><input type="number" id="tableConfigDepth" min="20" max="300" step="1" /><span>cm</span></div>
+      </div>
+    </div>
+    <p class="hint" id="tableConfigFixedNote" hidden>Feste Maße: 67,5 × 62,5 cm (Ecke abgeschnitten).</p>
+    <div class="modal-actions">
+      <button class="ghost" id="tableConfigCancel" type="button">Abbrechen</button>
+      <button class="btn-primary" id="tableConfigSave" type="button">Übernehmen</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1184,7 +1344,7 @@
     tableDM: 0.7,          // Tischtiefe in m
     gridM: 0.1,            // Rastermaß in m (einstellbar 0,1–1 m)
     students: [],       // {id, name}
-    tables: [],         // {id, type:'single'|'double', rotation, xM, yM} – Position in Metern (zoomunabhängig)
+    tables: [],         // {id, type:'single'|'double'|'pentagon', rotation, xM, yM} – Position in Metern (zoomunabhängig)
     assignments: {},     // seatKey ("tableId:0") -> studentId
     pinned: {},           // studentId -> true, fixiert (nicht verschiebbar/umverteilbar)
     nextStudentId: 1,
@@ -1333,6 +1493,56 @@
     multiSelectBtn.classList.toggle("active", multiSelectMode);
   });
 
+  // Dupliziert alle markierten Tische als neue, unabhängige Tische (leicht versetzt,
+  // relative Anordnung der Gruppe bleibt erhalten). Übernimmt bewusst NUR Typ, Drehung
+  // und Größe – bereits zugewiesene Namen werden nicht mit dupliziert, die Kopien
+  // starten also immer mit leeren Plätzen.
+  document.getElementById("duplicateBtn").addEventListener("click", function(){
+    var ids = Object.keys(multiSelected);
+    if (ids.length === 0){
+      window.alert("Bitte zuerst einen oder mehrere Tische markieren (siehe „Mehrere auswählen“).");
+      return;
+    }
+    var originals = ids.map(function(id){
+      return state.tables.filter(function(t){ return t.id === id; })[0];
+    }).filter(Boolean);
+
+    var freeSlots = MAX_TABLES - state.tables.length;
+    if (freeSlots <= 0){
+      window.alert("Es sind bereits " + MAX_TABLES + " Tische vorhanden – Duplizieren nicht möglich.");
+      return;
+    }
+    var toDuplicate = originals.slice(0, freeSlots);
+    if (toDuplicate.length < originals.length){
+      window.alert("Nur " + toDuplicate.length + " von " + originals.length + " markierten Tischen konnten dupliziert werden (Obergrenze " + MAX_TABLES + " Tische erreicht).");
+    }
+
+    var offsetM = 0.4;
+    var newIds = {};
+    toDuplicate.forEach(function(t){
+      var copy = {
+        id: "t" + (state.nextTableId++),
+        type: t.type,
+        rotation: t.rotation,
+        xM: t.xM + offsetM,
+        yM: t.yM + offsetM
+      };
+      if (t.type !== "pentagon"){
+        copy.wM = t.wM;
+        copy.dM = t.dM;
+      }
+      clampTableAuto(copy);
+      state.tables.push(copy);
+      newIds[copy.id] = true;
+    });
+
+    // Die neuen Kopien markieren, damit sie sich direkt weiterverschieben lassen.
+    multiSelected = newIds;
+    selected = null;
+    render();
+    scheduleSave();
+  });
+
   var marqueeActive = false;
   var marqueeStartX = 0, marqueeStartY = 0;
   var marqueeJustFinished = false;
@@ -1471,6 +1681,12 @@
         delete t.y;
       }
       if (typeof t.rotation !== "number") t.rotation = 0;
+      // Individuelle Tischgröße nachrüsten für Tische, die vor Einführung dieser
+      // Funktion gespeichert wurden (nutzten bislang implizit die globale Einstellung).
+      if (t.type !== "pentagon"){
+        if (typeof t.wM !== "number") t.wM = t.type === "double" ? state.tableWM : state.tableWM / 2;
+        if (typeof t.dM !== "number") t.dM = state.tableDM;
+      }
     });
   }
 
@@ -1833,15 +2049,143 @@
   function seatCount(type){ return type === "double" ? 2 : 1; }
   function isSideways(rotation){ return rotation === 90 || rotation === 270; }
 
+  // Fester Sondertisch: Rechteck 67,5 × 62,5 cm, von dem eine Ecke so abgeschnitten
+  // ist, dass von der langen Seite (67,5 cm) noch 24 cm und von der kurzen Seite
+  // (62,5 cm) noch 37 cm übrig bleiben (fünfeckige Grundfläche). Die Schnittkanten
+  // (Katheten des abgeschnittenen Dreiecks) ergeben sich daraus: 67,5-24=43,5 cm
+  // entlang der langen Seite, 62,5-37=25,5 cm entlang der kurzen Seite. Maße sind fix
+  // und unabhängig von den einstellbaren Tischmaßen.
+  var PENTAGON_W_M = 0.675, PENTAGON_H_M = 0.625;
+  var PENTAGON_CUT_W_M = 0.435, PENTAGON_CUT_H_M = 0.255;
+
+  // ---------- Kanten-Ausrichtung (Snap) zwischen Fünfeck-Tischen ----------
+  // Beim Ziehen eines Fünfeck-Tisches: liegt eine seiner fünf Kanten nah und passend
+  // (gegenläufig ausgerichtet, mit Überlappung) an einer Kante eines anderen Fünfeck-
+  // Tisches, rasten beide exakt aneinander ein – bevorzugt vor dem normalen Raster.
+  var PENTAGON_SNAP_THRESHOLD_M = 0.12;   // ab diesem Abstand rastet die Kante ein
+  var PENTAGON_SNAP_MIN_OVERLAP_M = 0.05; // Mindest-Überlappung entlang der Kante
+  var PENTAGON_CORNER_SNAP_THRESHOLD_M = 0.05; // Eckpunkt-Ausgleich nur innerhalb dieses Abstands
+
+  // Liefert die 5 Eckpunkte eines Fünfeck-Tisches in Raumkoordinaten (Meter), gedreht
+  // um seinen Mittelpunkt. xOverride/yOverride erlauben, Eckpunkte für eine noch nicht
+  // gespeicherte Kandidatenposition zu berechnen (während des Ziehens).
+  function pentagonVertices(t, xOverride, yOverride){
+    var xM = typeof xOverride === "number" ? xOverride : t.xM;
+    var yM = typeof yOverride === "number" ? yOverride : t.yM;
+    var w = PENTAGON_W_M, h = PENTAGON_H_M;
+    // Abgeschnittene Ecke unten links: die lange Kathete (PENTAGON_CUT_W_M) liegt an
+    // der langen (unteren) Seite, die kurze Kathete (PENTAGON_CUT_H_M) an der kurzen
+    // (linken) Seite.
+    var cutX = PENTAGON_CUT_W_M, cutY = h - PENTAGON_CUT_H_M;
+    var local = [[0, 0], [w, 0], [w, h], [cutX, h], [0, cutY]];
+    var rad = (t.rotation || 0) * Math.PI / 180;
+    var cos = Math.cos(rad), sin = Math.sin(rad);
+    var cx = xM + w / 2, cy = yM + h / 2;
+    return local.map(function(p){
+      var lx = p[0] - w / 2, ly = p[1] - h / 2;
+      return [cx + (lx * cos - ly * sin), cy + (lx * sin + ly * cos)];
+    });
+  }
+  function pentagonEdgesOf(vertices){
+    var edges = [];
+    for (var i = 0; i < vertices.length; i++){
+      edges.push([vertices[i], vertices[(i + 1) % vertices.length]]);
+    }
+    return edges;
+  }
+  // Prüft die Kandidatenposition (candidateXM/Y) eines gezogenen Fünfeck-Tisches gegen
+  // alle anderen Fünfeck-Tische im Raum; liefert die passendste Einrast-Position
+  // (Millimeter-genau) oder null, falls keine Kante nah genug ist.
+  function computePentagonEdgeSnap(tableRef, candidateXM, candidateYM){
+    var draggedEdges = pentagonEdgesOf(pentagonVertices(tableRef, candidateXM, candidateYM));
+    var best = null;
+
+    state.tables.forEach(function(other){
+      if (other.id === tableRef.id || other.type !== "pentagon") return;
+      var otherEdges = pentagonEdgesOf(pentagonVertices(other));
+
+      draggedEdges.forEach(function(e1){
+        var dir1x = e1[1][0] - e1[0][0], dir1y = e1[1][1] - e1[0][1];
+        var len1 = Math.hypot(dir1x, dir1y);
+        if (len1 < 1e-6) return;
+        dir1x /= len1; dir1y /= len1;
+
+        otherEdges.forEach(function(e2){
+          var dir2x = e2[1][0] - e2[0][0], dir2y = e2[1][1] - e2[0][1];
+          var len2 = Math.hypot(dir2x, dir2y);
+          if (len2 < 1e-6) return;
+          dir2x /= len2; dir2y /= len2;
+
+          // Kanten müssen (nahezu) gegenläufig zeigen, damit sie flächig
+          // aneinanderliegen können (Toleranz ~20°).
+          var dot = dir1x * dir2x + dir1y * dir2y;
+          if (dot > -0.94) return;
+
+          var normalX = -dir2y, normalY = dir2x;
+          var distA = (e1[0][0] - e2[0][0]) * normalX + (e1[0][1] - e2[0][1]) * normalY;
+          var distB = (e1[1][0] - e2[0][0]) * normalX + (e1[1][1] - e2[0][1]) * normalY;
+          var avgDist = (distA + distB) / 2;
+          if (Math.abs(avgDist) > PENTAGON_SNAP_THRESHOLD_M) return;
+
+          function proj(p){ return p[0] * dir2x + p[1] * dir2y; }
+          var lo = Math.max(Math.min(proj(e1[0]), proj(e1[1])), Math.min(proj(e2[0]), proj(e2[1])));
+          var hi = Math.min(Math.max(proj(e1[0]), proj(e1[1])), Math.max(proj(e2[0]), proj(e2[1])));
+          if (hi - lo < PENTAGON_SNAP_MIN_OVERLAP_M) return;
+
+          var absDist = Math.abs(avgDist);
+          if (!best || absDist < best.absDist){
+            // Zusätzlich zum senkrechten Ausgleich (Kanten auf eine Linie bringen)
+            // die Verschiebung ENTLANG der Kante bestimmen, die den nächstgelegenen
+            // Eckpunkt des gezogenen Tisches exakt auf einen Eckpunkt des anderen
+            // Tisches legt – sinnvoll besonders bei unterschiedlich langen Kanten.
+            // normalX/normalY steht senkrecht auf dir2, daher ändert die senkrechte
+            // Verschiebung die Projektion der Punkte auf die Kantenrichtung nicht.
+            var a1 = proj(e1[0]), a2 = proj(e1[1]);
+            var b1 = proj(e2[0]), b2 = proj(e2[1]);
+            var tangentialCandidates = [b1 - a1, b1 - a2, b2 - a1, b2 - a2];
+            var bestShift = tangentialCandidates[0];
+            tangentialCandidates.forEach(function(c){
+              if (Math.abs(c) < Math.abs(bestShift)) bestShift = c;
+            });
+            // Eckpunkt-Ausgleich nur anwenden, wenn dafür nur eine kleine zusätzliche
+            // Verschiebung entlang der Kante nötig ist – sonst bleibt es beim reinen
+            // Ausrichten auf die Linie, ohne den Tisch spürbar zu verschieben.
+            if (Math.abs(bestShift) > PENTAGON_CORNER_SNAP_THRESHOLD_M) bestShift = 0;
+            best = {
+              absDist: absDist,
+              dx: -avgDist * normalX + bestShift * dir2x,
+              dy: -avgDist * normalY + bestShift * dir2y
+            };
+          }
+        });
+      });
+    });
+
+    if (!best) return null;
+    var mm = function(v){ return Math.round(v * 1000) / 1000; };
+    return { xM: mm(candidateXM + best.dx), yM: mm(candidateYM + best.dy) };
+  }
+
   // Physische Grundfläche (in Metern), unabhängig vom Zoom. Die Tischmaße (Breite ×
   // Tiefe) beschreiben einen Doppeltisch; ein Einzeltisch ist genau halb so breit
   // (ein Sitzplatzmodul), bei gleicher Tiefe.
   function tableFootprintM(t){
-    var sc = seatCount(t.type);
+    if (t.type === "pentagon"){
+      // Kanonische (ungedrehte) Grundfläche – die tatsächliche Drehung (30°-Schritte)
+      // erfolgt separat per CSS-Rotation um den Mittelpunkt, nicht durch Vertauschen
+      // von Breite/Höhe wie bei den rechteckigen Tischen.
+      return {
+        widthM: PENTAGON_W_M, heightM: PENTAGON_H_M,
+        alongM: PENTAGON_W_M, depthM: PENTAGON_H_M,
+        cutWidthM: PENTAGON_CUT_W_M, cutHeightM: PENTAGON_CUT_H_M,
+        sideways: false, pentagon: true
+      };
+    }
     var sideways = isSideways(t.rotation || 0);
-    var unitW = state.tableWM / 2;   // Breite eines Sitzplatzmoduls (halber Doppeltisch)
-    var alongM = unitW * sc;         // Einzeltisch: 1 Modul, Doppeltisch: 2 Module
-    var depthM = state.tableDM;      // Tischtiefe
+    // Individuelle Tischgröße (pro Tisch, in Metern); Fallback auf die globale
+    // Einstellung für alte, vor dieser Funktion gespeicherte Tische.
+    var alongM = typeof t.wM === "number" ? t.wM : (state.tableWM / 2) * seatCount(t.type);
+    var depthM = typeof t.dM === "number" ? t.dM : state.tableDM;
     if (sideways){
       return { widthM: depthM, heightM: alongM, alongM: alongM, depthM: depthM, sideways: true };
     }
@@ -1876,9 +2220,17 @@
       height: fm.sideways ? alongPx : depthPx,
       seatSizes: seatSizes,   // Größe jedes Platzes entlang der Sitzreihe (Array, Länge sc)
       seatDepth: depthPx,     // Tiefe jedes Platzes (für alle gleich)
-      sideways: fm.sideways
+      sideways: fm.sideways,
+      pentagon: !!fm.pentagon,
+      cutWidth: fm.pentagon ? mToPx(fm.cutWidthM) : 0,   // Schnittkante entlang der aktuellen Breite
+      cutHeight: fm.pentagon ? mToPx(fm.cutHeightM) : 0  // Schnittkante entlang der aktuellen Höhe
     };
   }
+
+  // Fünfeck-Tische drehen sich frei in 30°-Schritten (per Anfasser), alle anderen
+  // Tische weiterhin in 90°-Schritten.
+  function rotationStep(type){ return type === "pentagon" ? 30 : 90; }
+  function normalizeAngle(deg){ return ((deg % 360) + 360) % 360; }
 
   function seatsFlexDirection(rotation){
     switch (rotation){
@@ -1891,16 +2243,24 @@
 
   function roomPx(){ return { w: mToPx(state.roomWM), h: mToPx(state.roomHM) }; }
 
-  function clampTable(t){
+  function clampTable(t, opts){
     var fm = tableFootprintM(t);
     var maxX = Math.max(0, state.roomWM - fm.widthM);
     var maxY = Math.max(0, state.roomHM - fm.heightM);
-    t.xM = snapM(Math.min(maxX, Math.max(0, t.xM)));
-    t.yM = snapM(Math.min(maxY, Math.max(0, t.yM)));
+    var x = Math.min(maxX, Math.max(0, t.xM));
+    var y = Math.min(maxY, Math.max(0, t.yM));
+    var skipGridSnap = opts && opts.skipGridSnap;
+    t.xM = skipGridSnap ? x : snapM(x);
+    t.yM = skipGridSnap ? y : snapM(y);
+  }
+  // Fünfeck-Tische nutzen grundsätzlich kein Raster (frei positionierbar bzw. an
+  // Kanten anderer Fünfeck-Tische ausgerichtet) – alle anderen Tische weiterhin schon.
+  function clampTableAuto(t){
+    clampTable(t, { skipGridSnap: t.type === "pentagon" });
   }
 
   function clampAllTables(){
-    state.tables.forEach(clampTable);
+    state.tables.forEach(clampTableAuto);
   }
 
   function nextFreePosition(type){
@@ -1922,7 +2282,12 @@
       return;
     }
     var pos = nextFreePosition(type);
-    state.tables.push({ id: "t" + (state.nextTableId++), type: type, rotation: 0, xM: pos.xM, yM: pos.yM });
+    var t = { id: "t" + (state.nextTableId++), type: type, rotation: 0, xM: pos.xM, yM: pos.yM };
+    if (type !== "pentagon"){
+      t.wM = type === "double" ? state.tableWM : state.tableWM / 2;
+      t.dM = state.tableDM;
+    }
+    state.tables.push(t);
     render();
     scheduleSave();
   }
@@ -1930,11 +2295,141 @@
   function rotateTable(tableId){
     var t = state.tables.filter(function(tb){ return tb.id === tableId; })[0];
     if (!t) return;
-    t.rotation = ((t.rotation || 0) + 90) % 360;
-    clampTable(t);
+    t.rotation = normalizeAngle((t.rotation || 0) + rotationStep(t.type));
+    clampTableAuto(t);
     render();
     scheduleSave();
   }
+
+  // ---------- Tisch-Konfigurationsmenü (Doppelklick) ----------
+  var configTableId = null;
+  function openTableConfig(tableId){
+    var t = state.tables.filter(function(tb){ return tb.id === tableId; })[0];
+    if (!t) return;
+    configTableId = tableId;
+    var fm = tableFootprintM(t);
+    var step = rotationStep(t.type);
+
+    var angleSelect = document.getElementById("tableConfigAngle");
+    angleSelect.innerHTML = "";
+    for (var a = 0; a < 360; a += step){
+      var opt = document.createElement("option");
+      opt.value = String(a);
+      opt.textContent = a + "°";
+      angleSelect.appendChild(opt);
+    }
+    angleSelect.value = String(normalizeAngle(t.rotation || 0));
+
+    var isPentagon = t.type === "pentagon";
+    document.getElementById("tableConfigSizeField").hidden = isPentagon;
+    document.getElementById("tableConfigFixedNote").hidden = !isPentagon;
+    if (!isPentagon){
+      document.getElementById("tableConfigWidth").value = Math.round(fm.alongM * 100);
+      document.getElementById("tableConfigDepth").value = Math.round(fm.depthM * 100);
+    }
+
+    var typeLabel = t.type === "double" ? "Doppeltisch" : (isPentagon ? "Fünfecktisch" : "Einzeltisch");
+    document.getElementById("tableConfigTitle").textContent = typeLabel + " konfigurieren";
+    document.getElementById("tableConfigOverlay").hidden = false;
+  }
+  function closeTableConfig(){
+    document.getElementById("tableConfigOverlay").hidden = true;
+    configTableId = null;
+  }
+  function saveTableConfig(){
+    var t = state.tables.filter(function(tb){ return tb.id === configTableId; })[0];
+    if (!t){ closeTableConfig(); return; }
+    var angle = parseInt(document.getElementById("tableConfigAngle").value, 10);
+    t.rotation = normalizeAngle(isNaN(angle) ? (t.rotation || 0) : angle);
+    if (t.type !== "pentagon"){
+      var fm = tableFootprintM(t);
+      var wCm = clampNum(document.getElementById("tableConfigWidth").value, 20, 400, Math.round(fm.alongM * 100));
+      var dCm = clampNum(document.getElementById("tableConfigDepth").value, 20, 300, Math.round(fm.depthM * 100));
+      t.wM = wCm / 100;
+      t.dM = dCm / 100;
+    }
+    clampTableAuto(t);
+    closeTableConfig();
+    render();
+    scheduleSave();
+  }
+  document.getElementById("tableConfigCancel").addEventListener("click", closeTableConfig);
+  document.getElementById("tableConfigSave").addEventListener("click", saveTableConfig);
+  document.getElementById("tableConfigOverlay").addEventListener("click", function(e){
+    if (e.target === document.getElementById("tableConfigOverlay")) closeTableConfig();
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && !document.getElementById("tableConfigOverlay").hidden) closeTableConfig();
+  });
+
+  // ---------- Tastatursteuerung für ausgewählte Tische ----------
+  // "Ausgewählt" = aktuelle Mehrfachauswahl, sonst (falls leer) der einzelne Tisch mit
+  // sichtbarer Kopfleiste. Pfeiltasten verschieben gemeinsam um ein Rastermaß, Q/R
+  // drehen jeden ausgewählten Tisch um seine eigene Schrittweite (Q = gegen den
+  // Uhrzeigersinn, R = im Uhrzeigersinn).
+  function getActiveTableIds(){
+    var ids = Object.keys(multiSelected);
+    if (ids.length > 0) return ids;
+    var activeEl = canvas.querySelector(".table.header-active");
+    if (activeEl && activeEl.dataset.tableId) return [activeEl.dataset.tableId];
+    return [];
+  }
+  function reactivateHeaders(ids){
+    if (Object.keys(multiSelected).length > 0) return; // Mehrfachauswahl zeigt sich schon über die eigene Markierung
+    ids.forEach(function(id){
+      var el = canvas.querySelector('.table[data-table-id="' + id + '"]');
+      if (el) el.classList.add("header-active");
+    });
+  }
+  var ARROW_MOVE = {
+    ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0]
+  };
+  document.addEventListener("keydown", function(e){
+    var tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return;
+    if (!document.getElementById("tableConfigOverlay").hidden) return; // Konfigurationsmenü offen
+
+    if (ARROW_MOVE[e.key]){
+      var ids = getActiveTableIds();
+      if (ids.length === 0) return;
+      e.preventDefault();
+      var d = ARROW_MOVE[e.key];
+      var dxM = d[0] * state.gridM, dyM = d[1] * state.gridM;
+      ids.forEach(function(id){
+        var t = state.tables.filter(function(tb){ return tb.id === id; })[0];
+        if (!t) return;
+        if (t.type === "pentagon"){
+          t.xM = t.xM + dxM;
+          t.yM = t.yM + dyM;
+        } else {
+          t.xM = snapM(t.xM + dxM);
+          t.yM = snapM(t.yM + dyM);
+        }
+        clampTableAuto(t);
+      });
+      render();
+      reactivateHeaders(ids);
+      scheduleSave();
+      return;
+    }
+
+    var key = e.key.toLowerCase();
+    if (key === "q" || key === "r"){
+      var ids2 = getActiveTableIds();
+      if (ids2.length === 0) return;
+      e.preventDefault();
+      var dir = key === "r" ? 1 : -1;
+      ids2.forEach(function(id){
+        var t = state.tables.filter(function(tb){ return tb.id === id; })[0];
+        if (!t) return;
+        t.rotation = normalizeAngle((t.rotation || 0) + dir * rotationStep(t.type));
+        clampTableAuto(t);
+      });
+      render();
+      reactivateHeaders(ids2);
+      scheduleSave();
+    }
+  });
 
   function deleteTable(tableId){
     for (var i = 0; i < seatCount(currentType(tableId)); i++){
@@ -1961,7 +2456,7 @@
     var n = Math.min(requested, room);
     for (var i = 0; i < n; i++){
       var pos = nextFreePosition("double");
-      state.tables.push({ id: "t" + (state.nextTableId++), type: "double", rotation: 0, xM: pos.xM, yM: pos.yM });
+      state.tables.push({ id: "t" + (state.nextTableId++), type: "double", rotation: 0, xM: pos.xM, yM: pos.yM, wM: state.tableWM, dM: state.tableDM });
     }
     if (n < requested){
       window.alert("Es wurden nur " + n + " von " + requested + " Tischen hinzugefügt (Obergrenze " + MAX_TABLES + " Tische erreicht).");
@@ -1971,6 +2466,7 @@
   });
   document.getElementById("addSingle").addEventListener("click", function(){ addTable("single"); });
   document.getElementById("addDouble").addEventListener("click", function(){ addTable("double"); });
+  document.getElementById("addPentagon").addEventListener("click", function(){ addTable("pentagon"); });
 
   // ---------- Standardanordnungen ----------
   // Ordnet alle vorhandenen Tische (unabhängig von Einzel-/Doppeltisch) neu an;
@@ -2154,9 +2650,20 @@
     state.tableDM = clampNum(dEl.value, 0.3, 3, state.tableDM);
     wEl.value = state.tableWM;
     dEl.value = state.tableDM;
+    // Ändert alle vorhandenen rechteckigen Tische (nicht den Fünfeck-Tisch) auf die
+    // neue Größe – individuell im Konfigurationsmenü gesetzte Maße werden dabei
+    // überschrieben.
+    applySizeToAllRectTables(state.tableWM, state.tableDM);
     clampAllTables();
     render();
     scheduleSave();
+  }
+  function applySizeToAllRectTables(tableWM, tableDM){
+    state.tables.forEach(function(t){
+      if (t.type === "pentagon") return;
+      t.wM = t.type === "double" ? tableWM : tableWM / 2;
+      t.dM = tableDM;
+    });
   }
   function applyGridSettings(){
     var gEl = document.getElementById("gridM");
@@ -2794,10 +3301,66 @@
       el.style.width = fp.width + "px";
       el.style.height = fp.height + "px";
 
+      // Bei Fünfeck-Tischen übernimmt ein innerer, zugeschnittener Wrapper Hintergrund/
+      // Rahmen/Kopfleiste/Sitzplatz; der äußere .table-Knoten bleibt ungeschnitten und
+      // trägt stattdessen die freie Drehung (CSS-Rotation).
+      var contentParent = el;
+      if (fp.pentagon){
+        el.classList.add("pentagon-table");
+        el.style.transform = "rotate(" + (t.rotation || 0) + "deg)";
+        el.style.transformOrigin = "50% 50%";
+
+        // Eckpunkte des Fünfecks (im Uhrzeigersinn) – einmal für CSS clip-path
+        // (mit "px"-Einheiten) und einmal für SVG points (ohne Einheiten) aufgebaut.
+        // Abgeschnittene Ecke unten links: lange Kathete an der langen (unteren)
+        // Seite, kurze Kathete an der kurzen (linken) Seite.
+        var cutX = fp.cutWidth, cutY = fp.height - fp.cutHeight;
+        var pts = [[0, 0], [fp.width, 0], [fp.width, fp.height], [cutX, fp.height], [0, cutY]];
+        var clipPoly = pts.map(function(p){ return p[0] + "px " + p[1] + "px"; }).join(", ");
+        var svgPoly = pts.map(function(p){ return p[0] + "," + p[1]; }).join(" ");
+
+        var shape = document.createElement("div");
+        shape.className = "table-shape";
+        shape.style.clipPath = "polygon(" + clipPoly + ")";
+        el.appendChild(shape);
+        contentParent = shape;
+
+        // clip-path maskiert nur die Füllung – der CSS-Rahmen folgt weiterhin den
+        // ursprünglichen Rechteckkanten und lässt die neue Diagonale offen. Eine SVG-
+        // Kontur zeichnet stattdessen alle fünf Kanten durchgehend nach.
+        var svgNS = "http://www.w3.org/2000/svg";
+        var outline = document.createElementNS(svgNS, "svg");
+        outline.setAttribute("width", fp.width);
+        outline.setAttribute("height", fp.height);
+        outline.style.position = "absolute";
+        outline.style.left = "0";
+        outline.style.top = "0";
+        outline.style.pointerEvents = "none";
+        outline.style.overflow = "visible";
+        var poly = document.createElementNS(svgNS, "polygon");
+        poly.setAttribute("points", svgPoly);
+        poly.style.fill = "none";
+        poly.style.stroke = "var(--teal-dark)";
+        poly.style.strokeWidth = "1.5px";
+        poly.style.strokeLinejoin = "round";
+        outline.appendChild(poly);
+        el.appendChild(outline);
+      }
+
+      var stem = document.createElement("div");
+      stem.className = "rotate-handle-stem";
+      el.appendChild(stem);
+      var handle = document.createElement("div");
+      handle.className = "rotate-handle";
+      handle.title = "Ziehen zum Drehen (" + rotationStep(t.type) + "°-Schritte)";
+      el.appendChild(handle);
+      makeRotationHandleDraggable(handle, t);
+
       var header = document.createElement("div");
       header.className = "table-header";
       var fmMeta = tableFootprintM(t);
-      header.title = (t.type === "double" ? "Doppeltisch" : "Einzeltisch") + " · " + (t.rotation || 0) + "° · " +
+      var typeLabel = t.type === "double" ? "Doppeltisch" : (t.type === "pentagon" ? "Fünfecktisch" : "Einzeltisch");
+      header.title = typeLabel + " · " + (t.rotation || 0) + "° · " +
         fmMeta.alongM.toFixed(2).replace(".", ",") + "×" + fmMeta.depthM.toFixed(2).replace(".", ",") + " m";
       var grip = document.createElement("span");
       grip.className = "grip";
@@ -2805,7 +3368,7 @@
       var rotateBtn = document.createElement("button");
       rotateBtn.className = "icon-btn rotate";
       rotateBtn.textContent = "⟳";
-      rotateBtn.title = "Um 90° drehen";
+      rotateBtn.title = "Um " + rotationStep(t.type) + "° drehen";
       rotateBtn.addEventListener("click", function(e){ e.stopPropagation(); rotateTable(t.id); });
       var del = document.createElement("button");
       del.className = "icon-btn del";
@@ -2815,7 +3378,7 @@
       header.appendChild(grip);
       header.appendChild(rotateBtn);
       header.appendChild(del);
-      el.appendChild(header);
+      contentParent.appendChild(header);
 
       var seatsWrap = document.createElement("div");
       seatsWrap.className = "seats";
@@ -2826,14 +3389,14 @@
       }
       var lastSeatEl = seatsWrap.lastElementChild;
       if (lastSeatEl){ lastSeatEl.style.borderRight = "none"; lastSeatEl.style.borderBottom = "none"; }
-      el.appendChild(seatsWrap);
+      contentParent.appendChild(seatsWrap);
       canvas.appendChild(el);
 
       // Touch-Geräte kennen kein Hover: Antippen des Tisches blendet die Kopfleiste ein
       // – außer im Mehrfachauswahl-Modus oder wenn bereits mehrere Tische markiert sind:
       // dann schaltet ein Klick/Tipp stattdessen die Markierung dieses Tisches um.
       el.addEventListener("click", function(e){
-        if (e.target.closest && e.target.closest(".icon-btn")) return;
+        if (e.target.closest && (e.target.closest(".icon-btn") || e.target.closest(".rotate-handle"))) return;
         var hasSelection = Object.keys(multiSelected).length > 0;
         if (multiSelectMode || hasSelection){
           if (multiSelected[t.id]) delete multiSelected[t.id];
@@ -2848,12 +3411,13 @@
         el.classList.toggle("header-active");
       });
 
-      // Doppelklick auf den Tisch dreht ihn um 90° (Alternative zum Rotieren-Button).
+      // Doppelklick auf den Tisch öffnet das Konfigurationsmenü (Winkel, bei
+      // rechteckigen Tischen auch individuelle Größe).
       // Doppelklick auf einen Namen fixiert stattdessen den Namen (siehe renderSeat).
       el.addEventListener("dblclick", function(e){
-        if (e.target.closest && (e.target.closest(".icon-btn") || e.target.closest(".occupant"))) return;
+        if (e.target.closest && (e.target.closest(".icon-btn") || e.target.closest(".rotate-handle") || e.target.closest(".occupant"))) return;
         e.preventDefault();
-        rotateTable(t.id);
+        openTableConfig(t.id);
       });
 
       makeTableDraggable(el, t);
@@ -3043,6 +3607,47 @@
     };
   }
 
+
+
+  // Anfasser zum Drehen (per Ziehen im Kreis um den Tischmittelpunkt), einheitlich für
+  // rechteckige Tische (90°-Raster) und den Fünfeck-Tisch (30°-Raster). Da eine 90°-
+  // Drehung bei rechteckigen Tischen Breite/Höhe vertauscht (kompletter Neuaufbau
+  // nötig), arbeiten wir mit Dokument-weiten Listenern statt Zeigererfassung auf einem
+  // Element, das beim Rasterwechsel neu erzeugt wird.
+  function makeRotationHandleDraggable(handle, tableRef){
+    handle.addEventListener("pointerdown", function(e){
+      e.stopPropagation();
+      e.preventDefault();
+
+      function onMove(ev){
+        var freshEl = canvas.querySelector('.table[data-table-id="' + tableRef.id + '"]');
+        if (!freshEl) return;
+        var rect = freshEl.getBoundingClientRect();
+        var centerX = rect.left + rect.width / 2;
+        var centerY = rect.top + rect.height / 2;
+        var angleDeg = Math.atan2(ev.clientY - centerY, ev.clientX - centerX) * 180 / Math.PI;
+        var step = rotationStep(tableRef.type);
+        var rotation = normalizeAngle(Math.round((angleDeg + 90) / step) * step);
+        if (rotation !== (tableRef.rotation || 0)){
+          tableRef.rotation = rotation;
+          clampTableAuto(tableRef);
+          render();
+          var reactivated = canvas.querySelector('.table[data-table-id="' + tableRef.id + '"]');
+          if (reactivated) reactivated.classList.add("header-active");
+        }
+      }
+      function onUp(){
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onUp);
+        scheduleSave();
+      }
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
+    });
+  }
+
   function makeTableDraggable(el, tableRef){
     var dragging = false;
     var moved = false;
@@ -3051,7 +3656,7 @@
     var group = []; // [{ ref, el, origXM, origYM, fm }]
 
     el.addEventListener("pointerdown", function(e){
-      if (e.target.closest && (e.target.closest(".icon-btn") || e.target.closest(".occupant"))) return;
+      if (e.target.closest && (e.target.closest(".icon-btn") || e.target.closest(".occupant") || e.target.closest(".rotate-handle") || e.target.closest(".rotate-handle-stem"))) return;
       dragging = true;
       moved = false;
       startX = e.clientX;
@@ -3082,8 +3687,14 @@
       }
       var d = computeGroupDelta(pxToM(dxPx), pxToM(dyPx), group);
       group.forEach(function(g){
-        g.el.style.left = mToPx(g.origXM + d.dx) + "px";
-        g.el.style.top = mToPx(g.origYM + d.dy) + "px";
+        var rawX = g.origXM + d.dx, rawY = g.origYM + d.dy;
+        var previewX = rawX, previewY = rawY;
+        if (g.ref.type === "pentagon" && group.length === 1){
+          var snap = computePentagonEdgeSnap(g.ref, rawX, rawY);
+          if (snap){ previewX = snap.xM; previewY = snap.yM; }
+        }
+        g.el.style.left = mToPx(previewX) + "px";
+        g.el.style.top = mToPx(previewY) + "px";
       });
     });
 
@@ -3095,8 +3706,19 @@
         var dyPx = e.clientY - startY;
         var d = computeGroupDelta(pxToM(dxPx), pxToM(dyPx), group);
         group.forEach(function(g){
-          g.ref.xM = snapM(g.origXM + d.dx);
-          g.ref.yM = snapM(g.origYM + d.dy);
+          var rawX = g.origXM + d.dx, rawY = g.origYM + d.dy;
+          if (g.ref.type === "pentagon" && group.length === 1){
+            // Fünfeck-Tische nutzen kein Raster: Kanten-Ausrichtung hat Vorrang, sonst
+            // frei positionierbar (nur an den Raum-Rändern begrenzt, ohne zu runden).
+            var snap = computePentagonEdgeSnap(g.ref, rawX, rawY);
+            g.ref.xM = snap ? snap.xM : rawX;
+            g.ref.yM = snap ? snap.yM : rawY;
+            clampTableAuto(g.ref);
+          } else {
+            g.ref.xM = snapM(rawX);
+            g.ref.yM = snapM(rawY);
+            clampTableAuto(g.ref);
+          }
           g.el.style.left = mToPx(g.ref.xM) + "px";
           g.el.style.top = mToPx(g.ref.yM) + "px";
           g.el.classList.remove("dragging");
