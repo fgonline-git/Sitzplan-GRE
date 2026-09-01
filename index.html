@@ -1154,7 +1154,7 @@
           <button class="ghost" id="addDouble">+ Doppeltisch</button>
           <button class="ghost" id="addPentagon">+ Fünfeckiger Tisch</button>
         </div>
-        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen, dabei erscheint auch ein kleiner Anfasser oberhalb des Tisches – ihn im Kreis ziehen dreht den Tisch (rechteckige Tische im 90°-, der fünfeckige Tisch im 30°-Raster). Doppelklick öffnet ein Konfigurationsmenü für Winkel und (bei rechteckigen Tischen) individuelle Größe. Ausgewählte Tische lassen sich zusätzlich mit den Pfeiltasten rasterweise verschieben und mit Q/R drehen. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben und über „⧉ Duplizieren“ als neue, leere Tische (ohne bereits zugewiesene Namen) kopieren. Der fünfeckige Tisch hat feste Maße (Rechteck 67,5 × 62,5 cm, an einer Ecke so abgeschnitten, dass 24 cm von der langen und 37 cm von der kurzen Seite übrig bleiben) und einen Sitzplatz; beim Ziehen rastet er bevorzugt Kante an Kante an einem anderen Fünfeck-Tisch ein, erst wenn keine Kante nah genug ist, gilt wieder das normale Raster. Insgesamt maximal 32 Tische.</p>
+        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen, dabei erscheint auch ein kleiner Anfasser oberhalb des Tisches – ihn im Kreis ziehen dreht den Tisch (rechteckige Tische im 90°-, der fünfeckige Tisch im 30°-Raster). Doppelklick öffnet ein Konfigurationsmenü für Winkel und (bei rechteckigen Tischen) individuelle Größe. Ausgewählte Tische lassen sich zusätzlich mit den Pfeiltasten rasterweise verschieben und mit Q/R drehen – bei mehreren markierten Tischen dreht Q/R die ganze Gruppe gemeinsam in 30°-Schritten um ihren Mittelpunkt. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben und über „⧉ Duplizieren“ als neue, leere Tische (ohne bereits zugewiesene Namen) kopieren. Der fünfeckige Tisch hat feste Maße (Rechteck 67,5 × 62,5 cm, an einer Ecke so abgeschnitten, dass 24 cm von der langen und 37 cm von der kurzen Seite übrig bleiben) und einen Sitzplatz; beim Ziehen rastet er bevorzugt Kante an Kante an einem anderen Fünfeck-Tisch ein, erst wenn keine Kante nah genug ist, gilt wieder das normale Raster. Insgesamt maximal 32 Tische.</p>
       </div>
     </section>
 
@@ -2301,6 +2301,44 @@
     scheduleSave();
   }
 
+  // Dreht eine ganze Gruppe markierter Tische gemeinsam um ihren gemeinsamen
+  // Mittelpunkt (Bounding-Box-Zentrum) in 30°-Schritten – Positionen wandern exakt
+  // mit, die Ausrichtung jedes Tisches ändert sich passend mit (Fünfeck-Tische exakt
+  // im 30°-Schritt, rechteckige Tische auf den nächsten gültigen 90°-Schritt gerundet,
+  // da sie nur achsenparallel darstellbar sind).
+  function rotateGroupBy(ids, deltaDeg){
+    var refs = ids.map(function(id){ return state.tables.filter(function(tb){ return tb.id === id; })[0]; }).filter(Boolean);
+    if (refs.length === 0) return;
+
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    refs.forEach(function(t){
+      var fm = tableFootprintM(t);
+      minX = Math.min(minX, t.xM); maxX = Math.max(maxX, t.xM + fm.widthM);
+      minY = Math.min(minY, t.yM); maxY = Math.max(maxY, t.yM + fm.heightM);
+    });
+    var pivotX = (minX + maxX) / 2, pivotY = (minY + maxY) / 2;
+    var rad = deltaDeg * Math.PI / 180;
+    var cos = Math.cos(rad), sin = Math.sin(rad);
+
+    refs.forEach(function(t){
+      var oldFm = tableFootprintM(t);
+      var cx = t.xM + oldFm.widthM / 2, cy = t.yM + oldFm.heightM / 2;
+      var relX = cx - pivotX, relY = cy - pivotY;
+      var newCx = pivotX + (relX * cos - relY * sin);
+      var newCy = pivotY + (relX * sin + relY * cos);
+
+      if (t.type === "pentagon"){
+        t.rotation = normalizeAngle((t.rotation || 0) + deltaDeg);
+      } else {
+        t.rotation = Math.round(normalizeAngle((t.rotation || 0) + deltaDeg) / 90) * 90 % 360;
+      }
+      var newFm = tableFootprintM(t);
+      t.xM = newCx - newFm.widthM / 2;
+      t.yM = newCy - newFm.heightM / 2;
+      clampTableAuto(t);
+    });
+  }
+
   // ---------- Tisch-Konfigurationsmenü (Doppelklick) ----------
   var configTableId = null;
   function openTableConfig(tableId){
@@ -2419,12 +2457,17 @@
       if (ids2.length === 0) return;
       e.preventDefault();
       var dir = key === "r" ? 1 : -1;
-      ids2.forEach(function(id){
-        var t = state.tables.filter(function(tb){ return tb.id === id; })[0];
-        if (!t) return;
-        t.rotation = normalizeAngle((t.rotation || 0) + dir * rotationStep(t.type));
-        clampTableAuto(t);
-      });
+      if (ids2.length > 1){
+        // Mehrfachauswahl: die ganze Gruppe gemeinsam um ihren Mittelpunkt drehen.
+        rotateGroupBy(ids2, dir * 30);
+      } else {
+        ids2.forEach(function(id){
+          var t = state.tables.filter(function(tb){ return tb.id === id; })[0];
+          if (!t) return;
+          t.rotation = normalizeAngle((t.rotation || 0) + dir * rotationStep(t.type));
+          clampTableAuto(t);
+        });
+      }
       render();
       reactivateHeaders(ids2);
       scheduleSave();
