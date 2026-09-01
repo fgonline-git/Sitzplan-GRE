@@ -1177,7 +1177,7 @@
           <button class="ghost" id="addDouble">+ Doppeltisch</button>
           <button class="ghost" id="addPentagon">+ Fünfeckiger Tisch</button>
         </div>
-        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen, dabei erscheint auch ein kleiner Anfasser oberhalb des Tisches – ihn im Kreis ziehen dreht den Tisch (rechteckige Tische im 90°-, der fünfeckige Tisch im 30°-Raster). Doppelklick öffnet ein Konfigurationsmenü für Winkel und (bei rechteckigen Tischen) individuelle Größe. Ausgewählte Tische lassen sich zusätzlich mit den Pfeiltasten rasterweise verschieben und mit Q/R drehen – bei mehreren markierten Tischen dreht Q/R die ganze Gruppe gemeinsam in 30°-Schritten um ihren Mittelpunkt. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben und über „⧉ Duplizieren“ als neue, leere Tische (ohne bereits zugewiesene Namen) kopieren. Der fünfeckige Tisch hat feste Maße (Rechteck 67,5 × 62,5 cm, an einer Ecke so abgeschnitten, dass 24 cm von der langen und 37 cm von der kurzen Seite übrig bleiben) und einen Sitzplatz; beim Ziehen rastet er bevorzugt Kante an Kante an einem anderen Fünfeck-Tisch ein, erst wenn keine Kante nah genug ist, gilt wieder das normale Raster. Insgesamt maximal 32 Tische.</p>
+        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen, dabei erscheint auch ein kleiner Anfasser oberhalb des Tisches – ihn im Kreis ziehen dreht den Tisch (rechteckige Tische im 90°-, der fünfeckige Tisch im 15°-Raster). Doppelklick öffnet ein Konfigurationsmenü für Winkel und (bei rechteckigen Tischen) individuelle Größe. Ausgewählte Tische lassen sich zusätzlich mit den Pfeiltasten rasterweise verschieben und mit Q/R drehen – bei mehreren markierten Tischen dreht Q/R die ganze Gruppe gemeinsam in 15°-Schritten um ihren Mittelpunkt. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben und über „⧉ Duplizieren“ als neue, leere Tische (ohne bereits zugewiesene Namen) kopieren. Der fünfeckige Tisch hat feste Maße (Rechteck 67,5 × 62,5 cm, an einer Ecke so abgeschnitten, dass 24 cm von der langen und 37 cm von der kurzen Seite übrig bleiben) und einen Sitzplatz; beim Ziehen rastet er bevorzugt Kante an Kante an einem anderen Fünfeck-Tisch ein, erst wenn keine Kante nah genug ist, gilt wieder das normale Raster. Insgesamt maximal 32 Tische.</p>
       </div>
     </section>
 
@@ -1308,7 +1308,7 @@
         <div class="ruler-left" id="rulerLeft"></div>
         <div class="canvas" id="canvas"></div>
         <div class="group-rotate-handle-stem" id="groupRotateStem" hidden></div>
-        <div class="group-rotate-handle" id="groupRotateHandle" title="Markierte Gruppe drehen (30°-Schritte)" hidden></div>
+        <div class="group-rotate-handle" id="groupRotateHandle" title="Markierte Gruppe drehen (15°-Schritte)" hidden></div>
       </div>
     </div>
     <div class="board">Tafel</div>
@@ -2196,7 +2196,7 @@
   // (ein Sitzplatzmodul), bei gleicher Tiefe.
   function tableFootprintM(t){
     if (t.type === "pentagon"){
-      // Kanonische (ungedrehte) Grundfläche – die tatsächliche Drehung (30°-Schritte)
+      // Kanonische (ungedrehte) Grundfläche – die tatsächliche Drehung (15°-Schritte)
       // erfolgt separat per CSS-Rotation um den Mittelpunkt, nicht durch Vertauschen
       // von Breite/Höhe wie bei den rechteckigen Tischen.
       return {
@@ -2252,9 +2252,10 @@
     };
   }
 
-  // Fünfeck-Tische drehen sich frei in 30°-Schritten (per Anfasser), alle anderen
+  // Fünfeck-Tische drehen sich frei in 15°-Schritten (per Anfasser), alle anderen
   // Tische weiterhin in 90°-Schritten.
-  function rotationStep(type){ return type === "pentagon" ? 30 : 90; }
+  function rotationStep(type){ return type === "pentagon" ? 15 : 90; }
+  var GROUP_ROTATION_STEP = 15; // Schrittweite für das gemeinsame Drehen einer Mehrfachauswahl
   function normalizeAngle(deg){ return ((deg % 360) + 360) % 360; }
 
   function seatsFlexDirection(rotation){
@@ -2367,9 +2368,9 @@
   }
 
   // Dreht eine ganze Gruppe markierter Tische gemeinsam um ihren gemeinsamen
-  // Mittelpunkt (Bounding-Box-Zentrum) in 30°-Schritten – Positionen wandern exakt
+  // Mittelpunkt (Bounding-Box-Zentrum) in 15°-Schritten – Positionen wandern exakt
   // mit, die Ausrichtung jedes Tisches ändert sich passend mit (Fünfeck-Tische exakt
-  // im 30°-Schritt, rechteckige Tische auf den nächsten gültigen 90°-Schritt gerundet,
+  // im 15°-Schritt, rechteckige Tische auf den nächsten gültigen 90°-Schritt gerundet,
   // da sie nur achsenparallel darstellbar sind).
   function rotateGroupBy(ids, deltaDeg){
     var refs = ids.map(function(id){ return state.tables.filter(function(tb){ return tb.id === id; })[0]; }).filter(Boolean);
@@ -2414,7 +2415,7 @@
       var pivotClientX = rect.left + mToPx(pivotXM);
       var pivotClientY = rect.top + mToPx(pivotYM);
       var currentAngleDeg = Math.atan2(e.clientY - pivotClientY, e.clientX - pivotClientX) * 180 / Math.PI;
-      var snappedDelta = Math.round((currentAngleDeg - startAngleDeg) / 30) * 30;
+      var snappedDelta = Math.round((currentAngleDeg - startAngleDeg) / GROUP_ROTATION_STEP) * GROUP_ROTATION_STEP;
       applyGroupRotationFromSnapshot(dragSnapshot, pivotXM, pivotYM, snappedDelta);
       render();
     });
@@ -2549,7 +2550,7 @@
       var dir = key === "r" ? 1 : -1;
       if (ids2.length > 1){
         // Mehrfachauswahl: die ganze Gruppe gemeinsam um ihren Mittelpunkt drehen.
-        rotateGroupBy(ids2, dir * 30);
+        rotateGroupBy(ids2, dir * GROUP_ROTATION_STEP);
       } else {
         ids2.forEach(function(id){
           var t = state.tables.filter(function(tb){ return tb.id === id; })[0];
@@ -3781,7 +3782,7 @@
 
 
   // Anfasser zum Drehen (per Ziehen im Kreis um den Tischmittelpunkt), einheitlich für
-  // rechteckige Tische (90°-Raster) und den Fünfeck-Tisch (30°-Raster). Da eine 90°-
+  // rechteckige Tische (90°-Raster) und den Fünfeck-Tisch (15°-Raster). Da eine 90°-
   // Drehung bei rechteckigen Tischen Breite/Höhe vertauscht (kompletter Neuaufbau
   // nötig), arbeiten wir mit Dokument-weiten Listenern statt Zeigererfassung auf einem
   // Element, das beim Rasterwechsel neu erzeugt wird.
