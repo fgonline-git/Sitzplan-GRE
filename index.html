@@ -764,6 +764,7 @@
     grid-template-columns:26px max-content;
     grid-template-rows:22px max-content;
     width:max-content;
+    position:relative;
   }
   .ruler-corner{
     position:sticky;
@@ -894,6 +895,28 @@
     pointer-events:auto;
   }
   .rotate-handle:active{ cursor:grabbing; }
+  .group-rotate-handle-stem{
+    position:absolute;
+    width:1.5px;
+    height:22px;
+    background:var(--amber-dark);
+    pointer-events:none;
+    z-index:60;
+  }
+  .group-rotate-handle{
+    position:absolute;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:var(--amber);
+    border:2px solid var(--panel);
+    box-shadow:0 1px 3px rgba(20,40,35,0.35);
+    cursor:grab;
+    touch-action:none;
+    z-index:61;
+    transform:translate(-50%, -50%);
+  }
+  .group-rotate-handle:active{ cursor:grabbing; }
   .table-header{
     position:absolute;
     top:0; left:0; right:0;
@@ -1284,6 +1307,8 @@
         <div class="ruler-top" id="rulerTop"></div>
         <div class="ruler-left" id="rulerLeft"></div>
         <div class="canvas" id="canvas"></div>
+        <div class="group-rotate-handle-stem" id="groupRotateStem" hidden></div>
+        <div class="group-rotate-handle" id="groupRotateHandle" title="Markierte Gruppe drehen (30°-Schritte)" hidden></div>
       </div>
     </div>
     <div class="board">Tafel</div>
@@ -2301,6 +2326,46 @@
     scheduleSave();
   }
 
+  // Wendet eine Gruppendrehung auf einen zuvor erfassten Ausgangszustand an (nicht auf
+  // den jeweils aktuellen Zwischenstand) – so entsteht auch bei mehrfachem Aufruf
+  // während eines Ziehvorgangs kein Drift, und rechteckige Tische runden ihre eigene
+  // Ausrichtung sauber vom Ausgangswert aus.
+  function applyGroupRotationFromSnapshot(snapshot, pivotX, pivotY, deltaDeg){
+    var rad = deltaDeg * Math.PI / 180;
+    var cos = Math.cos(rad), sin = Math.sin(rad);
+    snapshot.forEach(function(s){
+      var oldFm = tableFootprintM({ type: s.type, rotation: s.rotation, wM: s.wM, dM: s.dM });
+      var cx = s.xM + oldFm.widthM / 2, cy = s.yM + oldFm.heightM / 2;
+      var relX = cx - pivotX, relY = cy - pivotY;
+      var newCx = pivotX + (relX * cos - relY * sin);
+      var newCy = pivotY + (relX * sin + relY * cos);
+
+      if (s.type === "pentagon"){
+        s.ref.rotation = normalizeAngle(s.rotation + deltaDeg);
+      } else {
+        s.ref.rotation = Math.round(normalizeAngle(s.rotation + deltaDeg) / 90) * 90 % 360;
+      }
+      var newFm = tableFootprintM(s.ref);
+      s.ref.xM = newCx - newFm.widthM / 2;
+      s.ref.yM = newCy - newFm.heightM / 2;
+      clampTableAuto(s.ref);
+    });
+  }
+  function snapshotTables(refs){
+    return refs.map(function(t){
+      return { ref: t, type: t.type, rotation: t.rotation || 0, xM: t.xM, yM: t.yM, wM: t.wM, dM: t.dM };
+    });
+  }
+  function groupPivot(snapshot){
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    snapshot.forEach(function(s){
+      var fm = tableFootprintM({ type: s.type, rotation: s.rotation, wM: s.wM, dM: s.dM });
+      minX = Math.min(minX, s.xM); maxX = Math.max(maxX, s.xM + fm.widthM);
+      minY = Math.min(minY, s.yM); maxY = Math.max(maxY, s.yM + fm.heightM);
+    });
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+  }
+
   // Dreht eine ganze Gruppe markierter Tische gemeinsam um ihren gemeinsamen
   // Mittelpunkt (Bounding-Box-Zentrum) in 30°-Schritten – Positionen wandern exakt
   // mit, die Ausrichtung jedes Tisches ändert sich passend mit (Fünfeck-Tische exakt
@@ -2309,35 +2374,60 @@
   function rotateGroupBy(ids, deltaDeg){
     var refs = ids.map(function(id){ return state.tables.filter(function(tb){ return tb.id === id; })[0]; }).filter(Boolean);
     if (refs.length === 0) return;
-
-    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    refs.forEach(function(t){
-      var fm = tableFootprintM(t);
-      minX = Math.min(minX, t.xM); maxX = Math.max(maxX, t.xM + fm.widthM);
-      minY = Math.min(minY, t.yM); maxY = Math.max(maxY, t.yM + fm.heightM);
-    });
-    var pivotX = (minX + maxX) / 2, pivotY = (minY + maxY) / 2;
-    var rad = deltaDeg * Math.PI / 180;
-    var cos = Math.cos(rad), sin = Math.sin(rad);
-
-    refs.forEach(function(t){
-      var oldFm = tableFootprintM(t);
-      var cx = t.xM + oldFm.widthM / 2, cy = t.yM + oldFm.heightM / 2;
-      var relX = cx - pivotX, relY = cy - pivotY;
-      var newCx = pivotX + (relX * cos - relY * sin);
-      var newCy = pivotY + (relX * sin + relY * cos);
-
-      if (t.type === "pentagon"){
-        t.rotation = normalizeAngle((t.rotation || 0) + deltaDeg);
-      } else {
-        t.rotation = Math.round(normalizeAngle((t.rotation || 0) + deltaDeg) / 90) * 90 % 360;
-      }
-      var newFm = tableFootprintM(t);
-      t.xM = newCx - newFm.widthM / 2;
-      t.yM = newCy - newFm.heightM / 2;
-      clampTableAuto(t);
-    });
+    var snapshot = snapshotTables(refs);
+    var pivot = groupPivot(snapshot);
+    applyGroupRotationFromSnapshot(snapshot, pivot.x, pivot.y, deltaDeg);
   }
+
+  // Anfasser für die Mehrfachauswahl: bleibt (anders als die Anfasser einzelner
+  // Tische) über render()-Aufrufe hinweg dasselbe DOM-Element, daher genügt hier eine
+  // normale Zeigererfassung ohne Dokument-weite Listener.
+  (function(){
+    var handle = document.getElementById("groupRotateHandle");
+    var dragging = false;
+    var dragSnapshot = null;
+    var pivotXM = 0, pivotYM = 0;
+    var startAngleDeg = 0;
+
+    handle.addEventListener("pointerdown", function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      var ids = Object.keys(multiSelected);
+      var refs = ids.map(function(id){ return state.tables.filter(function(tb){ return tb.id === id; })[0]; }).filter(Boolean);
+      if (refs.length < 2) return;
+      dragSnapshot = snapshotTables(refs);
+      var pivot = groupPivot(dragSnapshot);
+      pivotXM = pivot.x; pivotYM = pivot.y;
+
+      var rect = canvas.getBoundingClientRect();
+      var pivotClientX = rect.left + mToPx(pivotXM);
+      var pivotClientY = rect.top + mToPx(pivotYM);
+      startAngleDeg = Math.atan2(e.clientY - pivotClientY, e.clientX - pivotClientX) * 180 / Math.PI;
+
+      dragging = true;
+      handle.setPointerCapture(e.pointerId);
+    });
+
+    handle.addEventListener("pointermove", function(e){
+      if (!dragging || !dragSnapshot) return;
+      var rect = canvas.getBoundingClientRect();
+      var pivotClientX = rect.left + mToPx(pivotXM);
+      var pivotClientY = rect.top + mToPx(pivotYM);
+      var currentAngleDeg = Math.atan2(e.clientY - pivotClientY, e.clientX - pivotClientX) * 180 / Math.PI;
+      var snappedDelta = Math.round((currentAngleDeg - startAngleDeg) / 30) * 30;
+      applyGroupRotationFromSnapshot(dragSnapshot, pivotXM, pivotYM, snappedDelta);
+      render();
+    });
+
+    function endGroupDrag(){
+      if (!dragging) return;
+      dragging = false;
+      dragSnapshot = null;
+      scheduleSave();
+    }
+    handle.addEventListener("pointerup", endGroupDrag);
+    handle.addEventListener("pointercancel", endGroupDrag);
+  })();
 
   // ---------- Tisch-Konfigurationsmenü (Doppelklick) ----------
   var configTableId = null;
@@ -3209,6 +3299,44 @@
     renderPool();
     renderTables();
     renderStats();
+    updateGroupHandle();
+  }
+
+  // Anfasser für die Mehrfachauswahl: erscheint oberhalb der Bounding Box aller
+  // markierten Tische, sobald mindestens zwei ausgewählt sind. .canvas sitzt selbst um
+  // 26px/22px versetzt in .plan-grid (wegen der Lineale) – dieser Versatz wird hier
+  // mit eingerechnet, da der Anfasser (damit er Neu-Rendern übersteht) außerhalb von
+  // .canvas liegt.
+  var CANVAS_OFFSET_X = 26, CANVAS_OFFSET_Y = 22;
+  var GROUP_HANDLE_GAP = 26;
+  function updateGroupHandle(){
+    var stem = document.getElementById("groupRotateStem");
+    var handle = document.getElementById("groupRotateHandle");
+    var ids = Object.keys(multiSelected);
+    var refs = ids.map(function(id){ return state.tables.filter(function(t){ return t.id === id; })[0]; }).filter(Boolean);
+    if (refs.length < 2){
+      stem.hidden = true;
+      handle.hidden = true;
+      return;
+    }
+    var minXM = Infinity, maxXM = -Infinity, minYM = Infinity;
+    refs.forEach(function(t){
+      var fm = tableFootprintM(t);
+      minXM = Math.min(minXM, t.xM);
+      maxXM = Math.max(maxXM, t.xM + fm.widthM);
+      minYM = Math.min(minYM, t.yM);
+    });
+    var centerPx = CANVAS_OFFSET_X + mToPx((minXM + maxXM) / 2);
+    var boxTopPx = CANVAS_OFFSET_Y + mToPx(minYM);
+    var handleTopPx = boxTopPx - GROUP_HANDLE_GAP;
+
+    stem.style.left = centerPx + "px";
+    stem.style.top = handleTopPx + "px";
+    stem.style.height = GROUP_HANDLE_GAP + "px";
+    handle.style.left = centerPx + "px";
+    handle.style.top = handleTopPx + "px";
+    stem.hidden = false;
+    handle.hidden = false;
   }
 
   function renderCanvasSize(){
