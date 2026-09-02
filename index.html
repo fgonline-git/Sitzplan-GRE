@@ -1321,7 +1321,7 @@
         <div class="group-rotate-handle" id="groupRotateHandle" title="Markierte Gruppe drehen (15°-Schritte)" hidden></div>
       </div>
     </div>
-    <div class="board">Tafel</div>
+    <div class="board" id="board">Tafel</div>
   </main>
 </div>
 
@@ -1489,6 +1489,9 @@
       setZoom(zoomBeforePrint);
       zoomBeforePrint = null;
     }
+    // Für den Druck gesetzte feste Breiten (Kopfzeile/Tafel-Leiste) wieder aufheben.
+    document.getElementById("printHeader").style.width = "";
+    document.getElementById("board").style.width = "";
   });
   function updatePrintHeader(){
     var parts = [state.className, state.roomName].map(function(p){ return (p || "").trim(); }).filter(function(p){ return p; });
@@ -1539,6 +1542,11 @@
       var result = computePrintScale(contentWpx, contentHpx);
       applyPrintOrientation(result.orientation);
       document.documentElement.style.setProperty("--print-scale", result.scale);
+      // Kopfzeile und Tafel-Leiste sind Flex-Kinder von .canvas-wrap und würden sonst
+      // dessen (ggf. breitere) Layout-Breite annehmen – auf die tatsächliche Breite
+      // des Klassenzimmers begrenzen, damit nur dessen Fläche den Ausdruck bestimmt.
+      document.getElementById("printHeader").style.width = contentWpx + "px";
+      document.getElementById("board").style.width = contentWpx + "px";
       window.print();
     }, 60);
   });
