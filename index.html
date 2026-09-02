@@ -1094,8 +1094,13 @@
   @media print{
     body{ background:#fff; }
     .sidebar, .zoom-controls, .canvas-toolbar, .modal-overlay{ display:none !important; }
-    .app{ height:auto; display:block; }
-    .canvas-wrap{ height:auto; overflow:visible; }
+    .app{ height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; }
+    .canvas-wrap{
+      height:auto;
+      overflow:visible;
+      transform:scale(var(--print-scale, 1));
+      transform-origin:top center;
+    }
     .canvas-scroll{ overflow:visible; height:auto; }
     .plan-grid{ width:auto !important; grid-template-columns:0 max-content !important; grid-template-rows:0 max-content !important; }
     .ruler-corner, .ruler-top, .ruler-left{ display:none !important; }
@@ -1492,11 +1497,50 @@
     document.getElementById("printHeaderMeta").textContent =
       now.toLocaleDateString("de-DE") + ", " + now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr";
   }
+
+  // Berechnet den größtmöglichen Maßstab, mit dem der Raumplan (inkl. Kopfzeile und
+  // Tafel-Leiste) auf eine Seite passt – probiert Hoch- und Querformat durch und wählt
+  // die Ausrichtung mit dem größeren Maßstab. Kopfzeile/Tafel-Leiste sind auf dem
+  // Bildschirm unsichtbar (display:none) und lassen sich daher nicht direkt vermessen;
+  // ihre Höhe wird stattdessen anhand der festen CSS-Werte geschätzt (mit Puffer).
+  var PRINT_MARGIN_MM = 10;
+  var PRINT_PAGE_W_MM = 210, PRINT_PAGE_H_MM = 297; // A4
+  var PRINT_HEADER_EXTRA_PX = 60;  // geschätzte Höhe der Druck-Kopfzeile inkl. Abstand
+  var PRINT_BOARD_EXTRA_PX = 45;   // geschätzte Höhe der Tafel-Leiste
+  function computePrintScale(contentWpx, contentHpx){
+    var mmToPx = 96 / 25.4;
+    var usableW_portrait = (PRINT_PAGE_W_MM - 2 * PRINT_MARGIN_MM) * mmToPx;
+    var usableH_portrait = (PRINT_PAGE_H_MM - 2 * PRINT_MARGIN_MM) * mmToPx;
+    var usableW_landscape = (PRINT_PAGE_H_MM - 2 * PRINT_MARGIN_MM) * mmToPx;
+    var usableH_landscape = (PRINT_PAGE_W_MM - 2 * PRINT_MARGIN_MM) * mmToPx;
+
+    var scalePortrait = Math.min(usableW_portrait / contentWpx, usableH_portrait / contentHpx);
+    var scaleLandscape = Math.min(usableW_landscape / contentWpx, usableH_landscape / contentHpx);
+
+    if (scaleLandscape > scalePortrait) return { scale: scaleLandscape, orientation: "landscape" };
+    return { scale: scalePortrait, orientation: "portrait" };
+  }
+  function applyPrintOrientation(orientation){
+    var styleEl = document.getElementById("printOrientationStyle");
+    if (!styleEl){
+      styleEl = document.createElement("style");
+      styleEl.id = "printOrientationStyle";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = "@page{ size:" + orientation + "; margin:" + PRINT_MARGIN_MM + "mm; }";
+  }
   document.getElementById("printBtn").addEventListener("click", function(){
     updatePrintHeader();
     zoomBeforePrint = zoom;
     setZoom(1);
-    setTimeout(function(){ window.print(); }, 60);
+    setTimeout(function(){
+      var contentWpx = canvas.offsetWidth;
+      var contentHpx = canvas.offsetHeight + PRINT_HEADER_EXTRA_PX + PRINT_BOARD_EXTRA_PX;
+      var result = computePrintScale(contentWpx, contentHpx);
+      applyPrintOrientation(result.orientation);
+      document.documentElement.style.setProperty("--print-scale", result.scale);
+      window.print();
+    }, 60);
   });
 
   // ---------- Mehrfachauswahl von Tischen ----------
