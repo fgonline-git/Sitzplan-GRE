@@ -4015,7 +4015,15 @@
         var d = computeGroupDelta(pxToM(dxPx), pxToM(dyPx), group);
         group.forEach(function(g){
           var rawX = g.origXM + d.dx, rawY = g.origYM + d.dy;
-          if (g.ref.type === "pentagon" && group.length === 1){
+          if (group.length > 1){
+            // Gruppen-Verschiebung: exakt derselbe (ungerundete) Versatz für alle
+            // Tische, damit ihre relative Anordnung zueinander exakt erhalten bleibt –
+            // unabhängig voneinander gerundet würde je nach Ausgangsposition
+            // unterschiedlich stark abweichen und die Anordnung verschieben.
+            g.ref.xM = rawX;
+            g.ref.yM = rawY;
+            clampTable(g.ref, { skipGridSnap: true });
+          } else if (g.ref.type === "pentagon"){
             // Fünfeck-Tische nutzen kein Raster: Kanten-Ausrichtung hat Vorrang, sonst
             // frei positionierbar (nur an den Raum-Rändern begrenzt, ohne zu runden).
             var snap = computePentagonEdgeSnap(g.ref, rawX, rawY);
