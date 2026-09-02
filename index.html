@@ -1216,6 +1216,7 @@
           <button class="icon-btn-add" id="addNameBtn" title="Name hinzufügen" aria-label="Name hinzufügen">+</button>
         </div>
         <div class="student-pool" id="studentPool"></div>
+        <button class="ghost full" id="unassignAllBtn">↩ Alle Namen zurück in die Liste</button>
         <button class="danger-link" id="clearNames">Namensliste löschen</button>
       </div>
     </section>
@@ -1886,6 +1887,26 @@
       importParsedNames(parseCsv(String(evt.target.result)));
     };
     reader.readAsText(file, "UTF-8");
+  });
+
+  // Löst alle aktuellen Platzzuweisungen (inkl. Fixierungen) und setzt die Namen
+  // zurück in die Liste, ohne dabei Tische oder die Namensliste selbst anzutasten.
+  document.getElementById("unassignAllBtn").addEventListener("click", function(){
+    var assignedCount = Object.keys(state.assignments).length;
+    if (assignedCount === 0){
+      window.alert("Es sind aktuell keine Namen an Tischen zugewiesen.");
+      return;
+    }
+    var pinnedCount = Object.keys(state.pinned).length;
+    var msg = pinnedCount > 0
+      ? "Alle " + assignedCount + " zugewiesenen Namen zurück in die Liste setzen? Das löst auch fixierte (📌) Namen."
+      : "Alle " + assignedCount + " zugewiesenen Namen zurück in die Liste setzen?";
+    if (!window.confirm(msg)) return;
+    state.assignments = {};
+    state.pinned = {};
+    selected = null;
+    render();
+    scheduleSave();
   });
 
   document.getElementById("clearNames").addEventListener("click", function(){
