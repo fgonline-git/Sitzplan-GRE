@@ -1230,7 +1230,11 @@
           <button class="info-btn" id="randomizeInfoToggle" type="button" title="Hinweis zur Zufallsverteilung" aria-label="Hinweis zur Zufallsverteilung">ⓘ</button>
         </div>
         <button class="ghost full" id="randomizeSelectedBtn">🎲 Nur markierte Tische mischen</button>
-        <p class="hint info-popover" id="randomizeInfoText" hidden>„Namen zufällig verteilen“ mischt alle Namen auf alle vorhandenen Plätze – auch bereits zugewiesene werden dabei neu gemischt. „Nur markierte Tische mischen“ verteilt stattdessen ausschließlich die Namen, die bereits an den aktuell markierten Tischen (siehe „Mehrere auswählen“) sitzen, untereinander neu – der Rest des Raums bleibt unangetastet. In beiden Fällen bleiben fixierte (📌) Namen unverändert.</p>
+        <label class="checkbox">
+          <input type="checkbox" id="flyAnimation" checked />
+          Namensschilder beim Verteilen fliegen lassen
+        </label>
+        <p class="hint info-popover" id="randomizeInfoText" hidden>„Namen zufällig verteilen“ mischt alle Namen auf alle vorhandenen Plätze – auch bereits zugewiesene werden dabei neu gemischt. „Nur markierte Tische mischen“ verteilt stattdessen ausschließlich die Namen, die bereits an den aktuell markierten Tischen (siehe „Mehrere auswählen“) sitzen, untereinander neu – der Rest des Raums bleibt unangetastet. In beiden Fällen bleiben fixierte (📌) Namen unverändert. Bei aktivierter Flug-Animation fliegen die Namensschilder sichtbar von ihrem bisherigen zum neuen Platz (ca. 2–3 Sekunden für eine ganze Klasse).</p>
       </div>
     </section>
 
@@ -1952,6 +1956,62 @@
     return arr;
   }
 
+  // Wendet neue Zuweisungen an und lässt dabei (falls die Checkbox aktiv ist) jedes
+  // bewegte Namensschild sichtbar von seiner alten zu seiner neuen Position fliegen
+  // (FLIP-Technik: alte Position merken, neu rendern, per Transform optisch an den
+  // Ausgangspunkt zurücksetzen, dann zur echten Zielposition animieren). Ohne aktive
+  // Checkbox verhält es sich wie vorher (sofortiges Neuzeichnen ohne Animation).
+  var FLY_TOTAL_MS = 2500;   // Gesamtdauer bis der letzte Namen ankommt
+  var FLY_DURATION_MS = 800; // Flugdauer je einzelnem Namen
+  function applyAssignmentsAnimated(newAssignments){
+    var animate = document.getElementById("flyAnimation").checked;
+    if (!animate){
+      state.assignments = newAssignments;
+      render();
+      return;
+    }
+
+    var oldRects = {};
+    state.students.forEach(function(s){
+      var el = document.querySelector('[data-student-id="' + s.id + '"]');
+      if (el) oldRects[s.id] = el.getBoundingClientRect();
+    });
+
+    state.assignments = newAssignments;
+    render();
+
+    var maxDelay = Math.max(0, FLY_TOTAL_MS - FLY_DURATION_MS);
+    requestAnimationFrame(function(){
+      state.students.forEach(function(s){
+        var el = document.querySelector('[data-student-id="' + s.id + '"]');
+        var oldRect = oldRects[s.id];
+        if (!el || !oldRect) return;
+        var newRect = el.getBoundingClientRect();
+        var dx = oldRect.left - newRect.left;
+        var dy = oldRect.top - newRect.top;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return; // nicht bewegt -> keine Animation nötig
+
+        el.style.transition = "none";
+        el.style.transform = "translate(" + dx + "px," + dy + "px)";
+        el.style.zIndex = "90";
+        el.style.position = "relative";
+        var delayMs = Math.random() * maxDelay;
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            el.style.transition = "transform " + FLY_DURATION_MS + "ms cubic-bezier(0.22,0.9,0.2,1) " + delayMs + "ms";
+            el.style.transform = "translate(0,0)";
+          });
+        });
+        window.setTimeout(function(){
+          el.style.transition = "";
+          el.style.transform = "";
+          el.style.zIndex = "";
+          el.style.position = "";
+        }, delayMs + FLY_DURATION_MS + 60);
+      });
+    });
+  }
+
   document.getElementById("randomizeBtn").addEventListener("click", function(){
     if (state.students.length === 0){
       window.alert("Es sind noch keine Namen importiert.");
@@ -2006,9 +2066,8 @@
     for (var k = 0; k < n; k++){
       newAssignments[freeSeatKeys[k]] = freeStudentIds[k];
     }
-    state.assignments = newAssignments;
     selected = null;
-    render();
+    applyAssignmentsAnimated(newAssignments);
     scheduleSave();
   });
 
@@ -2060,13 +2119,16 @@
     shuffleArray(freeStudentIds);
     shuffleArray(freeSeatKeys);
 
-    freeSeatKeys.forEach(function(sk){ delete state.assignments[sk]; });
+    var newAssignments = {};
+    Object.keys(state.assignments).forEach(function(sk){
+      if (freeSeatKeys.indexOf(sk) === -1) newAssignments[sk] = state.assignments[sk];
+    });
     var n2 = Math.min(freeStudentIds.length, freeSeatKeys.length);
     for (var k2 = 0; k2 < n2; k2++){
-      state.assignments[freeSeatKeys[k2]] = freeStudentIds[k2];
+      newAssignments[freeSeatKeys[k2]] = freeStudentIds[k2];
     }
     selected = null;
-    render();
+    applyAssignmentsAnimated(newAssignments);
     scheduleSave();
   });
 
@@ -3689,6 +3751,7 @@
         (isPinned ? " pinned" : "");
       occ.textContent = (isPinned ? "📌 " : "") + (s ? s.name : "?");
       occ.dataset.rawName = s ? s.name : "?";
+      occ.dataset.studentId = studentId;
       occ.draggable = !isPinned;
       occ.title = (s ? s.name : "") + (isPinned ? " · fixiert (Doppelklick zum Lösen)" : " · Doppelklick zum Fixieren");
       occ.addEventListener("dragstart", function(e){
