@@ -657,11 +657,16 @@
     overflow:hidden;
     position:relative;
   }
+  .canvas-topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:8px;
+    flex-wrap:wrap;
+    padding:12px 16px 0;
+    flex-shrink:0;
+  }
   .zoom-controls{
-    position:absolute;
-    top:12px;
-    right:16px;
-    z-index:20;
     display:flex;
     align-items:center;
     gap:1px;
@@ -702,10 +707,6 @@
     margin-top:2px;
   }
   .canvas-toolbar{
-    position:absolute;
-    top:12px;
-    left:16px;
-    z-index:20;
     display:flex;
     gap:8px;
     flex-wrap:wrap;
@@ -1086,7 +1087,7 @@
   .btn-primary:hover{ background:var(--teal-dark); }
   @media print{
     body{ background:#fff; }
-    .sidebar, .zoom-controls, .canvas-toolbar, .modal-overlay{ display:none !important; }
+    .sidebar, .canvas-topbar, .modal-overlay{ display:none !important; }
     .app{ height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; }
     .canvas-wrap{
       height:auto;
@@ -1292,17 +1293,19 @@
       <div class="print-header-title" id="printHeaderTitle"></div>
       <div class="print-header-meta" id="printHeaderMeta"></div>
     </div>
-    <div class="canvas-toolbar">
-      <button class="print-btn" id="sidebarToggleBtn" title="Seitenleiste ein-/ausblenden">☰</button>
-      <button class="print-btn" id="undoBtn" title="Letzte Aktion rückgängig machen (Strg+Z)" disabled>↩ Rückgängig</button>
-      <button class="print-btn" id="printBtn" title="Raumplan drucken">🖶 Drucken</button>
-      <button class="print-btn" id="multiSelectBtn" title="Mehrere Tische auswählen">☑️ Mehrere auswählen</button>
-      <button class="print-btn" id="duplicateBtn" title="Markierte Tische duplizieren">⧉ Duplizieren</button>
-    </div>
-    <div class="zoom-controls">
-      <button id="zoomOut" title="Verkleinern">−</button>
-      <button id="zoomReset" title="Zoom zurücksetzen">100%</button>
-      <button id="zoomIn" title="Vergrößern">+</button>
+    <div class="canvas-topbar">
+      <div class="canvas-toolbar">
+        <button class="print-btn" id="sidebarToggleBtn" title="Seitenleiste ein-/ausblenden">☰</button>
+        <button class="print-btn" id="undoBtn" title="Letzte Aktion rückgängig machen (Strg+Z)" disabled>↩ Rückgängig</button>
+        <button class="print-btn" id="printBtn" title="Raumplan drucken">🖶 Drucken</button>
+        <button class="print-btn" id="multiSelectBtn" title="Mehrere Tische auswählen">☑️ Mehrere auswählen</button>
+        <button class="print-btn" id="duplicateBtn" title="Markierte Tische duplizieren">⧉ Duplizieren</button>
+      </div>
+      <div class="zoom-controls">
+        <button id="zoomOut" title="Verkleinern">−</button>
+        <button id="zoomReset" title="Zoom zurücksetzen">100%</button>
+        <button id="zoomIn" title="Vergrößern">+</button>
+      </div>
     </div>
     <div class="canvas-scroll" id="canvasScroll">
       <div class="plan-grid">
@@ -3606,6 +3609,12 @@
     }
     if (e.target.closest && (e.target.closest("#multiSelectBtn") || e.target.closest("#duplicateBtn"))) return;
     clearMultiSelection();
+    // Mehrfachauswahl-Modus verlassen, sobald irgendwo außerhalb eines Tisches (Raum-
+    // fläche oder Seitenleiste) geklickt wird – nicht nur über den Umschalt-Button.
+    if (multiSelectMode){
+      multiSelectMode = false;
+      multiSelectBtn.classList.remove("active");
+    }
   });
 
   function renderTables(){
