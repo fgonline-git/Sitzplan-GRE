@@ -568,11 +568,6 @@
     transition:filter 0.15s ease, background 0.15s ease;
   }
   button:hover{ filter:brightness(0.95); }
-  #createTables{
-    flex:1;
-    background:var(--teal);
-    color:#fff;
-  }
   .ghost{
     flex:1;
     background:var(--teal-tint);
@@ -1166,15 +1161,11 @@
         <span class="chev">▸</span><span class="folder-name">Tische</span>
       </button>
       <div class="folder-body">
-        <div class="row row-center">
-          <input type="number" id="tableCount" min="1" max="32" value="12" />
-          <button class="grow" id="createTables">Hinzufügen</button>
-          <button class="info-btn" id="tablesInfoToggle" type="button" title="Hinweise zu Tischen" aria-label="Hinweise zu Tischen">ⓘ</button>
-        </div>
         <div class="row add-buttons">
           <button class="ghost" id="addSingle">+ Einzeltisch</button>
           <button class="ghost" id="addDouble">+ Doppeltisch</button>
           <button class="ghost" id="addPentagon">+ Fünfeckiger Tisch</button>
+          <button class="info-btn" id="tablesInfoToggle" type="button" title="Hinweise zu Tischen" aria-label="Hinweise zu Tischen">ⓘ</button>
         </div>
         <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Bei Klick auf den Tisch erscheint rechts daneben eine kleine Randleiste mit Drehen, Duplizieren, Konfigurieren und Löschen, sowie ein kleiner Anfasser oberhalb des Tisches – ihn im Kreis ziehen dreht den Tisch (rechteckige Tische im 90°-, der fünfeckige Tisch im 15°-Raster). Doppelklick öffnet dasselbe Konfigurationsmenü für Winkel und (bei rechteckigen Tischen) individuelle Größe. Ausgewählte Tische lassen sich zusätzlich mit den Pfeiltasten rasterweise verschieben und mit Q/R drehen – bei mehreren markierten Tischen dreht Q/R die ganze Gruppe gemeinsam in 15°-Schritten um ihren Mittelpunkt. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben und über „⧉ Duplizieren“ als neue, leere Tische (ohne bereits zugewiesene Namen) kopieren. Der fünfeckige Tisch hat feste Maße (Rechteck 67,5 × 62,5 cm, an einer Ecke so abgeschnitten, dass 24 cm von der langen und 37 cm von der kurzen Seite übrig bleiben) und einen Sitzplatz; beim Ziehen rastet er bevorzugt Kante an Kante an einem anderen Fünfeck-Tisch ein, erst wenn keine Kante nah genug ist, gilt wieder das normale Raster. Insgesamt maximal 32 Tische.</p>
       </div>
@@ -2730,24 +2721,6 @@
     return t ? t.type : "single";
   }
 
-  document.getElementById("createTables").addEventListener("click", function(){
-    var requested = Math.max(1, Math.min(MAX_TABLES, parseInt(document.getElementById("tableCount").value, 10) || 1));
-    var room = MAX_TABLES - state.tables.length;
-    if (room <= 0){
-      window.alert("Es sind bereits " + MAX_TABLES + " Tische vorhanden – mehr sind nicht möglich.");
-      return;
-    }
-    var n = Math.min(requested, room);
-    for (var i = 0; i < n; i++){
-      var pos = nextFreePosition("double");
-      state.tables.push({ id: "t" + (state.nextTableId++), type: "double", rotation: 0, xM: pos.xM, yM: pos.yM, wM: state.tableWM, dM: state.tableDM });
-    }
-    if (n < requested){
-      window.alert("Es wurden nur " + n + " von " + requested + " Tischen hinzugefügt (Obergrenze " + MAX_TABLES + " Tische erreicht).");
-    }
-    render();
-    scheduleSave();
-  });
   document.getElementById("addSingle").addEventListener("click", function(){ addTable("single"); });
   document.getElementById("addDouble").addEventListener("click", function(){ addTable("double"); });
   document.getElementById("addPentagon").addEventListener("click", function(){ addTable("pentagon"); });
