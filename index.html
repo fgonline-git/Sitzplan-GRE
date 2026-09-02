@@ -917,51 +917,44 @@
     transform:translate(-50%, -50%);
   }
   .group-rotate-handle:active{ cursor:grabbing; }
-  .table-header{
+  .table-rail{
     position:absolute;
-    top:0; left:0; right:0;
+    left:100%;
+    top:0;
+    margin-left:8px;
     z-index:5;
     display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:2px;
-    background:var(--teal);
-    color:#fff;
-    font-family:var(--font-mono);
-    font-size:10.5px;
-    letter-spacing:0.03em;
-    padding:4px 5px;
-    border-radius:6px 6px 0 0;
-    cursor:grab;
+    flex-direction:column;
+    gap:6px;
     opacity:0;
     pointer-events:none;
     transition:opacity 0.12s ease;
   }
-  .table.dragging .table-header,
-  .table.header-active .table-header{
+  .table.dragging .table-rail,
+  .table.header-active .table-rail{
     opacity:1;
     pointer-events:auto;
   }
-  .table-header:active{ cursor:grabbing; }
-  .table-header .grip{ opacity:0.7; letter-spacing:1px; flex:1; overflow:hidden; }
-  .table-header .icon-btn{
-    background:none;
-    color:#fff;
-    opacity:0.85;
-    padding:5px;
-    font-size:13px;
+  .table-rail .icon-btn{
+    background:var(--panel);
+    color:var(--teal-dark);
+    border:1.5px solid var(--panel-border);
+    box-shadow:0 2px 6px rgba(20,40,35,0.16);
+    padding:0;
+    width:32px;
+    height:32px;
+    font-size:15px;
     line-height:1;
-    border-radius:5px;
+    border-radius:9px;
     flex-shrink:0;
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    min-width:22px;
-    min-height:22px;
     touch-action:manipulation;
   }
-  .table-header .icon-btn:hover{ opacity:1; background:rgba(255,255,255,0.18); }
-  .table-header .rotate{ font-size:13px; }
+  .table-rail .icon-btn:hover{ background:var(--teal-tint); border-color:var(--teal); }
+  .table-rail .icon-btn.del{ color:var(--red); }
+  .table-rail .icon-btn.del:hover{ background:var(--red-tint); border-color:var(--red); }
 
   .seats{ display:flex; }
   .seat{
@@ -1105,7 +1098,7 @@
     .plan-grid{ width:auto !important; grid-template-columns:0 max-content !important; grid-template-rows:0 max-content !important; }
     .ruler-corner, .ruler-top, .ruler-left{ display:none !important; }
     .table{ box-shadow:none; page-break-inside:avoid; break-inside:avoid; }
-    .table-header{ display:none !important; }
+    .table-rail{ display:none !important; }
     .board{ border-top:2px solid #000; }
     .seat .occupant{
       background:none !important;
@@ -1182,7 +1175,7 @@
           <button class="ghost" id="addDouble">+ Doppeltisch</button>
           <button class="ghost" id="addPentagon">+ Fünfeckiger Tisch</button>
         </div>
-        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Kopfleiste (bei Klick auf den Tisch sichtbar) für Drehen und Löschen, dabei erscheint auch ein kleiner Anfasser oberhalb des Tisches – ihn im Kreis ziehen dreht den Tisch (rechteckige Tische im 90°-, der fünfeckige Tisch im 15°-Raster). Doppelklick öffnet ein Konfigurationsmenü für Winkel und (bei rechteckigen Tischen) individuelle Größe. Ausgewählte Tische lassen sich zusätzlich mit den Pfeiltasten rasterweise verschieben und mit Q/R drehen – bei mehreren markierten Tischen dreht Q/R die ganze Gruppe gemeinsam in 15°-Schritten um ihren Mittelpunkt. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben und über „⧉ Duplizieren“ als neue, leere Tische (ohne bereits zugewiesene Namen) kopieren. Der fünfeckige Tisch hat feste Maße (Rechteck 67,5 × 62,5 cm, an einer Ecke so abgeschnitten, dass 24 cm von der langen und 37 cm von der kurzen Seite übrig bleiben) und einen Sitzplatz; beim Ziehen rastet er bevorzugt Kante an Kante an einem anderen Fünfeck-Tisch ein, erst wenn keine Kante nah genug ist, gilt wieder das normale Raster. Insgesamt maximal 32 Tische.</p>
+        <p class="hint info-popover" id="tablesInfoText" hidden>Tisch anklicken und halten, um ihn zu verschieben – er rastet automatisch am Raster ein. Bei Klick auf den Tisch erscheint rechts daneben eine kleine Randleiste mit Drehen, Duplizieren, Konfigurieren und Löschen, sowie ein kleiner Anfasser oberhalb des Tisches – ihn im Kreis ziehen dreht den Tisch (rechteckige Tische im 90°-, der fünfeckige Tisch im 15°-Raster). Doppelklick öffnet dasselbe Konfigurationsmenü für Winkel und (bei rechteckigen Tischen) individuelle Größe. Ausgewählte Tische lassen sich zusätzlich mit den Pfeiltasten rasterweise verschieben und mit Q/R drehen – bei mehreren markierten Tischen dreht Q/R die ganze Gruppe gemeinsam in 15°-Schritten um ihren Mittelpunkt. Mehrere Tische markieren: mit der Maus ein Auswahlrechteck über die leere Fläche ziehen, oder oben „Mehrere auswählen“ antippen und die gewünschten Tische antippen – markierte Tische lassen sich gemeinsam verschieben und über „⧉ Duplizieren“ als neue, leere Tische (ohne bereits zugewiesene Namen) kopieren. Der fünfeckige Tisch hat feste Maße (Rechteck 67,5 × 62,5 cm, an einer Ecke so abgeschnitten, dass 24 cm von der langen und 37 cm von der kurzen Seite übrig bleiben) und einen Sitzplatz; beim Ziehen rastet er bevorzugt Kante an Kante an einem anderen Fünfeck-Tisch ein, erst wenn keine Kante nah genug ist, gilt wieder das normale Raster. Insgesamt maximal 32 Tische.</p>
       </div>
     </section>
 
@@ -1575,30 +1568,21 @@
     multiSelectBtn.classList.toggle("active", multiSelectMode);
   });
 
-  // Dupliziert alle markierten Tische als neue, unabhängige Tische (leicht versetzt,
-  // relative Anordnung der Gruppe bleibt erhalten). Übernimmt bewusst NUR Typ, Drehung
+  // Dupliziert eine Liste von Tischen als neue, unabhängige Tische (leicht versetzt,
+  // relative Anordnung zueinander bleibt erhalten). Übernimmt bewusst NUR Typ, Drehung
   // und Größe – bereits zugewiesene Namen werden nicht mit dupliziert, die Kopien
-  // starten also immer mit leeren Plätzen.
-  document.getElementById("duplicateBtn").addEventListener("click", function(){
-    var ids = Object.keys(multiSelected);
-    if (ids.length === 0){
-      window.alert("Bitte zuerst einen oder mehrere Tische markieren (siehe „Mehrere auswählen“).");
-      return;
-    }
-    var originals = ids.map(function(id){
-      return state.tables.filter(function(t){ return t.id === id; })[0];
-    }).filter(Boolean);
-
+  // starten also immer mit leeren Plätzen. Gibt die Anzahl tatsächlich erzeugter
+  // Kopien und deren IDs zurück.
+  function duplicateTables(originals){
     var freeSlots = MAX_TABLES - state.tables.length;
     if (freeSlots <= 0){
       window.alert("Es sind bereits " + MAX_TABLES + " Tische vorhanden – Duplizieren nicht möglich.");
-      return;
+      return null;
     }
     var toDuplicate = originals.slice(0, freeSlots);
     if (toDuplicate.length < originals.length){
-      window.alert("Nur " + toDuplicate.length + " von " + originals.length + " markierten Tischen konnten dupliziert werden (Obergrenze " + MAX_TABLES + " Tische erreicht).");
+      window.alert("Nur " + toDuplicate.length + " von " + originals.length + " Tischen konnten dupliziert werden (Obergrenze " + MAX_TABLES + " Tische erreicht).");
     }
-
     var offsetM = 0.4;
     var newIds = {};
     toDuplicate.forEach(function(t){
@@ -1617,8 +1601,32 @@
       state.tables.push(copy);
       newIds[copy.id] = true;
     });
+    return newIds;
+  }
+  // Dupliziert genau einen Tisch (Randleisten-Button) und markiert die Kopie direkt.
+  function duplicateSingleTable(tableId){
+    var t = state.tables.filter(function(tb){ return tb.id === tableId; })[0];
+    if (!t) return;
+    var newIds = duplicateTables([t]);
+    if (!newIds) return;
+    multiSelected = newIds;
+    selected = null;
+    render();
+    scheduleSave();
+  }
 
-    // Die neuen Kopien markieren, damit sie sich direkt weiterverschieben lassen.
+  // Dupliziert alle markierten Tische (Werkzeugleisten-Button).
+  document.getElementById("duplicateBtn").addEventListener("click", function(){
+    var ids = Object.keys(multiSelected);
+    if (ids.length === 0){
+      window.alert("Bitte zuerst einen oder mehrere Tische markieren (siehe „Mehrere auswählen“).");
+      return;
+    }
+    var originals = ids.map(function(id){
+      return state.tables.filter(function(t){ return t.id === id; })[0];
+    }).filter(Boolean);
+    var newIds = duplicateTables(originals);
+    if (!newIds) return;
     multiSelected = newIds;
     selected = null;
     render();
@@ -2459,6 +2467,10 @@
     t.rotation = normalizeAngle((t.rotation || 0) + rotationStep(t.type));
     clampTableAuto(t);
     render();
+    // render() baut den Tisch neu auf und verliert dabei "header-active" (nur ein
+    // transienter DOM-Zustand) – Randleiste danach wieder sichtbar machen.
+    var freshEl = canvas.querySelector('.table[data-table-id="' + tableId + '"]');
+    if (freshEl) freshEl.classList.add("header-active");
     scheduleSave();
   }
 
@@ -3664,28 +3676,36 @@
       makeRotationHandleDraggable(handle, t);
 
       var header = document.createElement("div");
-      header.className = "table-header";
+      header.className = "table-rail";
       var fmMeta = tableFootprintM(t);
       var typeLabel = t.type === "double" ? "Doppeltisch" : (t.type === "pentagon" ? "Fünfecktisch" : "Einzeltisch");
-      header.title = typeLabel + " · " + (t.rotation || 0) + "° · " +
+      el.title = typeLabel + " · " + (t.rotation || 0) + "° · " +
         fmMeta.alongM.toFixed(2).replace(".", ",") + "×" + fmMeta.depthM.toFixed(2).replace(".", ",") + " m";
-      var grip = document.createElement("span");
-      grip.className = "grip";
-      grip.textContent = "⠿";
       var rotateBtn = document.createElement("button");
       rotateBtn.className = "icon-btn rotate";
       rotateBtn.textContent = "⟳";
       rotateBtn.title = "Um " + rotationStep(t.type) + "° drehen";
       rotateBtn.addEventListener("click", function(e){ e.stopPropagation(); rotateTable(t.id); });
+      var dup = document.createElement("button");
+      dup.className = "icon-btn duplicate";
+      dup.textContent = "⧉";
+      dup.title = "Tisch duplizieren";
+      dup.addEventListener("click", function(e){ e.stopPropagation(); duplicateSingleTable(t.id); });
+      var cfg = document.createElement("button");
+      cfg.className = "icon-btn config";
+      cfg.textContent = "⚙";
+      cfg.title = "Konfigurieren (Winkel/Größe)";
+      cfg.addEventListener("click", function(e){ e.stopPropagation(); openTableConfig(t.id); });
       var del = document.createElement("button");
       del.className = "icon-btn del";
       del.textContent = "×";
       del.title = "Tisch löschen";
       del.addEventListener("click", function(e){ e.stopPropagation(); deleteTable(t.id); });
-      header.appendChild(grip);
       header.appendChild(rotateBtn);
+      header.appendChild(dup);
+      header.appendChild(cfg);
       header.appendChild(del);
-      contentParent.appendChild(header);
+      el.appendChild(header);
 
       var seatsWrap = document.createElement("div");
       seatsWrap.className = "seats";
