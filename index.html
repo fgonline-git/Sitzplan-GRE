@@ -2385,8 +2385,18 @@
       sideways: fm.sideways,
       pentagon: !!fm.pentagon,
       cutWidth: fm.pentagon ? mToPx(fm.cutWidthM) : 0,   // Schnittkante entlang der aktuellen Breite
-      cutHeight: fm.pentagon ? mToPx(fm.cutHeightM) : 0  // Schnittkante entlang der aktuellen Höhe
+      cutHeight: fm.pentagon ? mToPx(fm.cutHeightM) : 0, // Schnittkante entlang der aktuellen Höhe
+      rotationDeg: t.rotation || 0
     };
+  }
+
+  // Bei frei drehbaren Fünfeck-Tischen würde ein eingetragener Name bei Drehwinkeln
+  // zwischen 90° und 270° kopfüber (oder zumindest stark schräg über Kopf) erscheinen.
+  // Dagegensteuern: den Namen in diesem Bereich zusätzlich um 180° zurückdrehen, damit
+  // er immer aufrecht bzw. höchstens um 90° geneigt lesbar bleibt.
+  function occupantCounterRotationDeg(tableRotationDeg){
+    var r = ((tableRotationDeg % 360) + 360) % 360;
+    return (r > 90 && r < 270) ? 180 : 0;
   }
 
   // Fünfeck-Tische drehen sich frei in 15°-Schritten (per Anfasser), alle anderen
@@ -3827,6 +3837,10 @@
       occ.textContent = (isPinned ? "📌 " : "") + (s ? s.name : "?");
       occ.dataset.rawName = s ? s.name : "?";
       occ.dataset.studentId = studentId;
+      if (fp.pentagon){
+        var counterRot = occupantCounterRotationDeg(fp.rotationDeg);
+        if (counterRot) occ.style.transform = "rotate(" + counterRot + "deg)";
+      }
       occ.draggable = !isPinned;
       occ.title = (s ? s.name : "") + (isPinned ? " · fixiert (Doppelklick zum Lösen)" : " · Doppelklick zum Fixieren");
       occ.addEventListener("dragstart", function(e){
